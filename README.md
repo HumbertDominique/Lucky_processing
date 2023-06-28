@@ -16,7 +16,7 @@ This piece of software was developped in the scope of a bachelor thesis in micro
 5. ...
 ## Limitations
 - .fits only
-- ...
+- Processing is done all at once. No batches to fint into the RAM only.
 ## Status
 under developpment
 
