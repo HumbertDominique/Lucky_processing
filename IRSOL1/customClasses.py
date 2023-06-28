@@ -16,8 +16,8 @@ class eErrors (enum.Enum):
     E_unknown_error = 3
 
 class plotTypes (enum.Enum): 
-    raw_save = 0
     raw = 1
     roi = 2
-    close = 3
-    sigma = 4
+    sigma = 3
+    approx = 4
+    bcg0 = 5

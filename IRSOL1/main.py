@@ -1,5 +1,13 @@
 # Lecture et traitement d'image en lucky imaging.
 # 
+# On first run, do:
+#   - "python -m pip install numpy"
+#   - "python -m pip install matplotlib"
+#   - "python -m pip install from astropy"
+#   - "python -m pip install from scipy"
+#
+# Run from command line "python main.py arg1 arg2".
+# Put no argument for help
 #
 # 2023.06.26    -   Dominique Humbert   -   Version initiale
 
@@ -18,6 +26,7 @@ import sys
 from customClasses import eErrors
 
 
+
 global eError
 eError = eErrors.E_all_fine
 
@@ -25,15 +34,16 @@ k = len(sys.argv)
 match k:
     case 1:
         print("here")
-        a=1
+        a=11
+        plot_type = None
         eError = eErrors.E_arg_error
     case 2:
         a = int(sys.argv[1])
-        plotType = None
+        plot_type = None
         eError = eErrors.E_all_fine
     case 3:
         a = int(sys.argv[1])
-        plotType = np.array(sys.argv[2])
+        plot_type = np.array(sys.argv[2])
         eError = eErrors.E_all_fine
     case _:
         eError = eErrors.E_arg_error
@@ -60,6 +70,16 @@ def main(a, eError, plotType):
             # check if current path is a file
             if os.path.isfile(os.path.join(dir_path, path)):
                 n += 1
+        
+        # -----------------------------Debug-----------------------------
+        # -----------------------------Debug-----------------------------
+        # -----------------------------Debug-----------------------------
+        # -----------------------------Debug-----------------------------
+        n = 10
+        # -----------------------------Debug-----------------------------
+        # -----------------------------Debug-----------------------------
+        # -----------------------------Debug-----------------------------
+        # -----------------------------Debug-----------------------------
 
         path = folder+filename
 
@@ -79,7 +99,6 @@ def main(a, eError, plotType):
                 case 1:
                     print('Read data')
                     data_raw = fnc.readData(n,path)
-                    np.save('data_raw',data_raw, allow_pickle=True, fix_imports=True)
                 case 2:
                     print('ROI')
                     fnc.ROI(n,data_raw)
@@ -89,7 +108,7 @@ def main(a, eError, plotType):
                     # for now, brute force
                     if data_roi is None:
                         print('loading ROI data')
-                        data_roi = np.load('data_roi.npy')
+                        data_roi = np.load('temp/data_roi.npy')
                     #[k, j] = data_roi[:,:,1].shape
                     #data_sigma = np.zeros((k,j,n))
                 case 4:
@@ -100,61 +119,70 @@ def main(a, eError, plotType):
                     print("Speckles")
                     if data_sigma is None:
                         print('loading sigma data')
-                        data_sigma = np.load('data_sigma.npy')
+                        data_sigma = np.load('temp/data_sigma.npy')
                     speckles = np.zeros((2,n))
                     for i in range(n):
                         speckles[:,i] = np.unravel_index(data_sigma[:,:,i].argmax(), data_sigma[:,:,i].shape)
-                    print(speckles[0,0],speckles[1,0])
-                    eError=eErrors.E_end_programm
 
                 case 6:
                     print("mask")
                     if data_sigma is None:
                         print('loading sigma data')
-                        data_sigma = np.load('data_sigma.npy')
-                    maskR = 30  # [px]
-                    mask = np.zeros((2*maskR,2*maskR))
+                        data_sigma = np.load('temp/data_sigma.npy')
+                    mask_radius = 150  # Rayon du cercle à exclure
 
-                    k = data_sigma.shape[1]
-                    x = np.linspace(0,k-1,num=k)
-                    y = np.linspace(0,k-1,num=k)
-                    interpolation = RegularGridInterpolator((x,y),data_sigma[:,:,0])
 
-                    print(interpolation((x,y)).shape)
+                    
+                    approx_data = fnc.polynomial_mask(data_sigma[:,:,0], mask_radius, 3,'nearest')
+                    data_no_bcg = data_sigma[:,:,0] - approx_data
+                    np.save('temp/data_no_bcg',data_no_bcg, allow_pickle=True, fix_imports=True)
+
                     plt.figure()
-                    plt.imshow()
-                    plt.show()
+                    plt.pcolor(data_sigma[:,:,0],vmin=0, vmax=4095)
+                    plt.title('sigma filter')
+                    plt.colorbar()
 
-                    eError=eErrors.E_end_programm
+                    plt.figure()
+                    plt.pcolor(approx_data,vmin=0, vmax=4095//2)
+                    plt.title('approx bcg')
+                    plt.colorbar()
+
+                    plt.figure()
+                    plt.pcolor(data_no_bcg,vmin=0, vmax=4095)
+                    plt.title('no bcg')
+                    plt.colorbar()
+
                 case 7:
-                    if data_sigma is None:
-                        print('loading sigma data')
-                        data_sigma = np.load('data_sigma.npy')
-                    mask_radius = 100  # Rayon du cercle à exclure
-                    approximated_image = fnc.polynomial_mask(data_sigma[:,:,1], mask_radius, 10,'nearest')
-                    plt.figure()
-                    plt.imshow(approximated_image, cmap='gray')
-                    plt.show()
+                    a
+                case 8:
+                    a
+                case 9:
+                    a
+
                 case 10:
+                    et = time.time()
+                    # get the execution time
+                    elapsed_time = et - st
+                    print('Execution time:', elapsed_time, 'seconds')
+                    
                     print('display')
-                    fnc.display_images(plotType)
+                    fnc.display_images(plot_type)
                     eError=eErrors.E_end_programm
                 case _:
-                    eError=eErrors.E_end_programm
+                    et = time.time()
+                    # get the execution time
+                    elapsed_time = et - st
+                    print('Execution time:', elapsed_time, 'seconds')
 
+                    eError=eErrors.E_end_programm
+                
 
             a += 1
             printTemp = 'eError:{}'.format(eError)
             #print(printTemp)
 
-
-
-        et = time.time()
-        # get the execution time
-        elapsed_time = et - st
-        print('Execution time:', elapsed_time, 'seconds')
     fnc.eError_handling(eError)
 
 
 #-----------------KEEP HERE--------------------
-main(a, eError, plotType)
+main(a, eError, plot_type)
