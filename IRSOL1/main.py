@@ -11,6 +11,8 @@
 #
 # 2023.06.26    -   Dominique Humbert   -   Version initiale
 
+
+#------------------LIBRARIES (temporary)
 from astropy.io import fits
 from astropy import stats
 import matplotlib.pyplot as plt
@@ -34,7 +36,7 @@ k = len(sys.argv)
 match k:
     case 1:
         print("here")
-        a=11
+        a=7
         plot_type = None
         eError = eErrors.E_arg_error
     case 2:
@@ -50,7 +52,7 @@ match k:
         a=11
 
 
-def main(a, eError, plotType):
+def main(a, eError=eErrors.E_all_fine):
     if (eError == eErrors.E_all_fine):
         st = time.time()
         # ------------------------------Variables------------------------------
@@ -75,7 +77,7 @@ def main(a, eError, plotType):
         # -----------------------------Debug-----------------------------
         # -----------------------------Debug-----------------------------
         # -----------------------------Debug-----------------------------
-        n = 10
+        n = 5
         # -----------------------------Debug-----------------------------
         # -----------------------------Debug-----------------------------
         # -----------------------------Debug-----------------------------
@@ -102,6 +104,7 @@ def main(a, eError, plotType):
                 case 2:
                     print('ROI')
                     fnc.ROI(n,data_raw)
+                    del data_raw
                 case 3:
                     print("Dead pixels")
                     # https://www.astropy.org/ccd-reduction-and-photometry-guide/v/dev/notebooks/08-01-Identifying-hot-pixels.html
@@ -114,7 +117,7 @@ def main(a, eError, plotType):
                 case 4:
                     print('Sigma filter')
                     data_sigma = fnc.sigma(n,data_roi)
-
+                    del data_roi
                 case 5:
                     print("Speckles")
                     if data_sigma is None:
@@ -132,8 +135,8 @@ def main(a, eError, plotType):
                     mask_radius = 150  # Rayon du cercle à exclure
 
 
-                    
-                    approx_data = fnc.polynomial_mask(data_sigma[:,:,0], mask_radius, 3,'nearest')
+        
+                    approx_data = fnc.polynomial_mask_py(data_sigma[:,:,0], mask_radius,'nearest')
                     data_no_bcg = data_sigma[:,:,0] - approx_data
                     np.save('temp/data_no_bcg',data_no_bcg, allow_pickle=True, fix_imports=True)
 
@@ -153,7 +156,31 @@ def main(a, eError, plotType):
                     plt.colorbar()
 
                 case 7:
-                    a
+                    if data_sigma is None:
+                        print('loading sigma data')
+                        data_sigma = np.load('temp/data_sigma.npy')
+                    mask_radius = 150  # Rayon du cercle à exclure
+                    
+                    mask = fnc.buid_mask(data_sigma[:,:,0],mask_radius)
+                    plt.figure()
+                    plt.pcolor(data_sigma[:,:,4], cmap='gray',vmin=0, vmax=4095)
+                    plt.title('before')
+                    plt.colorbar()
+
+                    model = fnc.polynomial_mask(data_sigma[:,:,4],mask,4)
+                    data_sigma[:,:,4] = data_sigma[:,:,4] + model
+                    
+                    plt.figure()
+                    plt.imshow(model)
+                    plt.title('model')
+                    plt.colorbar()
+
+                    plt.figure()
+                    plt.imshow(data_sigma[:,:,4])
+                    plt.title('after')
+                    plt.colorbar()
+                    plt.show()
+
                 case 8:
                     a
                 case 9:
@@ -166,7 +193,8 @@ def main(a, eError, plotType):
                     print('Execution time:', elapsed_time, 'seconds')
                     
                     print('display')
-                    fnc.display_images(plot_type)
+                    
+                    #fnc.display_images(data_sigma[:,:,0:2])
                     eError=eErrors.E_end_programm
                 case _:
                     et = time.time()
@@ -185,4 +213,4 @@ def main(a, eError, plotType):
 
 
 #-----------------KEEP HERE--------------------
-main(a, eError, plot_type)
+main(a)

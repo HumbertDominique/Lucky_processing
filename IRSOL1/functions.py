@@ -109,53 +109,117 @@ def sigma(n,data):
 # to do:
 #   add image selection
 #------------------------------------------------------------------------------------
-def display_images(plot_type):
-    data_raw = None
-    data_roi = None
-    data_sigma = None
-    data_closed = None
-    match plot_type:
-        case 'raw':
-            print('loading raw data')
-            data_raw = np.load('temp/data_raw.npy')
-            plt.figure()
-            plt.imshow(data_raw[:,:,0], cmap='gray')
+def display_images(data,n=1):
 
-        case 'roi':
-            print('loading ROI data')
-            data_roi = np.load('temp/data_roi.npy')
+    if n > 1:
+        for i in range(n):
             plt.figure()
-            plt.imshow(data_roi[:,:,0], cmap='gray')
-
-        case 'sigma':
-            print('loading sigma data')
-            data_sigma = np.load('temp/data_sigma.npy')
-            plt.figure()
-            plt.imshow(data_sigma[:,:,0], cmap='gray')
-
-        case 'mask':
-            print('loading mask data')
-            data_mask = np.load('temp/data_mask.npy')
-            plt.figure()
-            plt.imshow(data_mask[:,:,0], cmap='gray')    
-
-        case 'approx':
-            print('loading approx data')
-            data_approx = np.load('temp/data_approx.npy')
-            plt.figure()
-            plt.imshow(data_approx[:,:,0], cmap='gray')
-        
-        case 'no_bcg':
-            print('loading data without background')
-            data_no_bcg = np.load('temp/data_no_bcg.npy')
-            plt.figure()
-            plt.imshow(data_no_bcg[:,:,0], cmap='gray')
-            
+            plt.imshow(data[:,:,i], cmap='gray')
+    else:
+        plt.imshow(data, cmap='gray')
     plt.show()
     
 
 #------------------------------------------------------------------------------------
-# polynomial_mask(data, mask_radius,bits,methode)
+# buid_maks(data,center=None)
+# in:
+#   data : Array the size of the image for whoch the mask is built
+#   radius : mask radius
+#   center (optional) : x,y coordinate of the mask's center 
+#out:
+#   mask : boolean array with True in the mask circle
+#------------------------------------------------------------------------------------
+def buid_mask(data,radius,center=None):
+
+    width, height = data.shape
+
+    if center == None:
+        center = np.zeros((2))
+        center[0] = width // 2  # x
+        center[1] = height // 2 # x
+
+    x = np.linspace(0, width-1, width).astype(np.uint16)
+    y = np.linspace(0, height-1, height).astype(np.uint16)
+    grid_x, grid_y = np.meshgrid(x, y)
+                    
+    distance_from_center = np.sqrt((grid_x - center[0])**2 + (grid_y - center[1])**2)
+
+    # Créer le masque pour exclure les pixels à l'intérieur du cercle
+    mask = distance_from_center <= radius
+
+    return mask
+
+#------------------------------------------------------------------------------------
+# polynomial_mask(data, mask_radius,order=4)
+# according to "Analyse de données"
+# in:
+#   data : image to interpolate from
+#   mask_radius : mask radius in px
+#   Order : Order of the appoximation. Default = 4
+#
+# out: 
+#   approximated image
+#  
+# to do:
+#   add mask cendered on speckle or centroid
+#------------------------------------------------------------------------------------
+def polynomial_mask(data, mask,order=4):
+
+    mask_dbl = np.zeros(mask.shape)
+    mask_dbl[mask==False] = 1.   # met des 1. là ou le masque n'est pas présent
+    width, height = data.shape
+
+    a = np.zeros((width, height, order))
+    b = a.copy()
+    A = np.zeros((width, height, order)).astype(np.double)
+
+    #Coordinate matrix
+    xs = np.linspace(-1, 1, width).astype(np.double)
+    ys = np.linspace(-1, 1, height).astype(np.double)
+
+    index_grid_x = np.zeros((width, height)).astype(np.double)
+    index_grid_y = np.zeros((width, height)).astype(np.double)
+
+    for i in range(height):
+        index_grid_x[:,i] = xs
+    for i in range(width):
+        index_grid_y[i,:] = ys
+
+    o = -1   
+    for i in range(order):
+        o=o+1
+        for j in range(0,i+1):
+            A[:,:,o] = index_grid_x**(i-(j-1))*index_grid_y**(i)
+
+    Gij = np.zeros((order,order))
+
+    for o in range(order):
+        for i in range(0,o+1):
+            Gij[o,i] = np.sum(A[:,:,o]*A[:,:,i-1]*mask_dbl)
+            Gij[o,i] = Gij[i,o]
+
+    b = np.zeros((order))
+    for o in range(order):      # Calcule b = [mi, xi*mi, yi*mi,xi^2*mi, xi*yi*mi, yi^2*mi, ...] pour chaque pixel
+        b[o] = np.sum((data*A[:,:,o]*mask_dbl))  # outside of mask
+    a=np.zeros(b.shape)
+    for o in range(order):
+        a = np.dot(b,np.linalg.inv(Gij)).copy()
+
+    model = np.zeros((width, height))
+    for i in range(order):
+        model=model+a[i]*A[:,:,i]
+
+    return model
+
+
+
+    
+
+
+
+
+#------------------------------------------------------------------------------------
+# polynomial_mask_py(data, mask_radius,bits,methode)
 # Build an approximated mask on an image. 'nearest' is the fastest methode
 # in:
 #   data : image to interpolate from
@@ -169,7 +233,7 @@ def display_images(plot_type):
 # to do:
 #   add mask cendered on speckle or centroid
 #------------------------------------------------------------------------------------
-def polynomial_mask(data, mask_radius,bits,methode):
+def polynomial_mask_py(data, mask_radius,methode):
     
     # Créer un maillage régulier pour l'approximation polynomiale
     height, width = data.shape
