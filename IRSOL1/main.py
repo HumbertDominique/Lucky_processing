@@ -72,7 +72,6 @@ def main(a, eError=eErrors.E_all_fine):
             # check if current path is a file
             if os.path.isfile(os.path.join(dir_path, path)):
                 n += 1
-        
         # -----------------------------Debug-----------------------------
         # -----------------------------Debug-----------------------------
         # -----------------------------Debug-----------------------------
@@ -162,13 +161,23 @@ def main(a, eError=eErrors.E_all_fine):
                     mask_radius = 150  # Rayon du cercle à exclure
                     
                     mask = fnc.buid_mask(data_sigma[:,:,0],mask_radius)
+                    # plt.figure()
+                    # plt.pcolor(data_sigma[:,:,4], cmap='gray',vmin=0, vmax=4095)
+                    # plt.title('before')
+                    # plt.colorbar()
+
                     plt.figure()
-                    plt.pcolor(data_sigma[:,:,4], cmap='gray',vmin=0, vmax=4095)
+                    plt.imshow(data_sigma[:,:,4])
                     plt.title('before')
                     plt.colorbar()
 
+                    plt.figure()
+                    plt.imshow(mask)
+                    plt.title('mask')
+                    plt.colorbar()
+
                     model = fnc.polynomial_mask(data_sigma[:,:,4],mask,4)
-                    data_sigma[:,:,4] = data_sigma[:,:,4] + model
+                    data_sigma[:,:,4] = data_sigma[:,:,4] - model
                     
                     plt.figure()
                     plt.imshow(model)
@@ -213,4 +222,5 @@ def main(a, eError=eErrors.E_all_fine):
 
 
 #-----------------KEEP HERE--------------------
+
 main(a)

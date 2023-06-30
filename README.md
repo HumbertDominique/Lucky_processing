@@ -12,7 +12,7 @@ This piece of software was developped in the scope of a bachelor thesis in micro
 1. reads data
 2. allows ROI on the pictures
 3. Sigma filtering
-4. backgroung removal with synthetic background
+7. backgroung removal with synthetic background
 5. ...
 ## Limitations
 - .fits only
