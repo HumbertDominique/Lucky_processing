@@ -48,7 +48,7 @@ def readData(n, fname):
     out:
       data: 3D array with pixel data
     ------------------------------------------------------------------------------------'''
-    status = 1
+    status = 0
     for i in range(n):
         filename = fname+'{:03d}'.format(i+1)+'.fits'
         if i==0:                    # Gets the pic size on firts pass
@@ -109,7 +109,7 @@ def normalise(n,data, bits_depth = 12):
         print('Invalid bit depth. Chose a bit depth between 1 and 16')
     else:
         bits = 12
-        status = 1
+        status = 0
         print('Normalising images in ',bits,'bits')
         for i in range(n):  #normalise
             data[:,:,i] = (data[:,:,i] - np.min(data[:,:,i])) / (np.max(data[:,:,i]) - np.min(data[:,:,i]))
@@ -147,7 +147,7 @@ def sigma(data,n=None):
             data_sigma = np.zeros((k,j,n))
 
 
-    status = 1
+    status = 0
     for i in range(n):
         data_sigma[:,:,i] = stats.sigma_clip(data[:,:,i],maxiters=None)         # A développer soit même ?
         if 100*(i+1)//n == status*10:

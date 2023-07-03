@@ -93,12 +93,14 @@ def main(a, eError=eErrors.E_all_fine):
                 case 0: # only read and save raw data
                     print('Read data')
                     data = fnc.readData(n,path)
-
+                    mean_image_raw = np.sum(data,2)/n
+                    np.save('temp/mean_image_raw',mean_image_raw, allow_pickle=True, fix_imports=True)  
                     eError=eErrors.E_end_programm
                 case 1:
                     print('Read data')
                     data = fnc.readData(n,path)
                     mean_image_raw = np.sum(data,2)/n
+                    np.save('temp/mean_image_raw',mean_image_raw, allow_pickle=True, fix_imports=True)
                     # plt.figure()
                     # plt.imshow(data[:,:,0],cmap='gray',vmin=0,vmax=4095)
                     # plt.title('Raw image')
@@ -161,7 +163,7 @@ def main(a, eError=eErrors.E_all_fine):
                     mask = np.zeros((data.shape))  # Remove if using mask and model at the same time as data takes too much
                     model = np.zeros(data.shape)
 
-                    status = 1
+                    status = 0
                     for i in range(0,n):
                         mask[:,:,i] = fnc.buid_mask(data[:,:,0],mask_radius,speckles[:,i])
                         model[:,:,i] = fnc.polynomial_mask(data[:,:,i],mask[:,:,i],4)
@@ -206,11 +208,12 @@ def main(a, eError=eErrors.E_all_fine):
                 case 7:
                     a    
                 case 8:
-                    print('Noise filtering')
-                    if data is None:
-                        print('Loading some data')
-                        data = np.load('temp/data_bcg.npy')
-                        k, j, n = data.shape
+                    a
+                    # print('Noise filtering')
+                    # if data is None:
+                    #     print('Loading some data')
+                    #     data = np.load('temp/data_bcg.npy')
+                    #     k, j, n = data.shape
 
                     # unfiltered = data[:,:,0]
                     # plt.figure()
@@ -231,7 +234,7 @@ def main(a, eError=eErrors.E_all_fine):
                     print('Dust spots')
                     NdustSpots = 4
                     spot_model_radius = 25  
-                
+                    status = 0;
                     if data is None:
                         print('Loading filtered data')
                         data = np.load('temp/data_bcg.npy')
@@ -249,6 +252,9 @@ def main(a, eError=eErrors.E_all_fine):
                     
                     for i in range(0,n):
                         data[:,:,i] = fnc.image_dusting(data[:,:,i],dust_model,4)
+                        if 100*i//n == status*10:
+                            print('Dust shadow removal: ',status*10,'% done')
+                            status += 1
                     
                     np.save('temp/data_dustfree',data, allow_pickle=True, fix_imports=True)
 
@@ -264,7 +270,7 @@ def main(a, eError=eErrors.E_all_fine):
                     if data is None:
                         print('Loading shadowless data')
                         data = np.load('temp/data_dustfree.npy') 
-
+                    status = 0
 
                     for i in range(n):
                         speckles = np.unravel_index(data[:,:,i].argmax(), data[:,:,i].shape)
@@ -273,6 +279,9 @@ def main(a, eError=eErrors.E_all_fine):
                         Dx = ref[0]-speckles[0] 
                         Dy = ref[1]-speckles[1] 
                         data[:,:,i] = np.roll(data[:,:,i],(Dy,Dx),axis=(1,0))
+                        if 100*i//n == status*10:
+                            print('Tracking: ',status*10,'% done')
+                            status += 1
 
                     np.save('temp/data_Stracked',data, allow_pickle=True, fix_imports=True)
 
@@ -359,17 +368,34 @@ def main(a, eError=eErrors.E_all_fine):
                     text_temp = 'Mean {r:.2f}% speckle tracked frames'
                     plt.title(text_temp.format(r=100*r))
                     plt.show()
-                                 
+                    eError=eErrors.E_end_programm             
 
                 case 12:
-                    et = time.time()
-                    # get the execution time
-                    elapsed_time = et - st
-                    print('Execution time:', elapsed_time, 'seconds')
-                    
                     print('display')
+                    mean_raw = np.load('temp/mean_image_raw.npy')
+                    mean_bcg = np.load('temp/mean_image_bcg.npy')
+                    mean_dustfree = np.load('temp/mean_image_dustfree.npy')
+                    mean_image_Stracking = np.load('temp/mean_image_Stracking.npy')
+                    mean_lucky_Stracking = np.load('temp/mean_lucky_Stracking.npy')
                     
-                    #fnc.display_images(data_sigma[:,:,0:2])
+                    plt.figure()
+                    plt.imshow(mean_raw)
+                    plt.title('Mean raw data')
+                    plt.figure()
+                    plt.imshow(mean_bcg)
+                    plt.title('Mean Bcg removed data')
+                    plt.figure()
+                    plt.imshow(mean_dustfree)
+                    plt.title('Mean dustfree data')
+                    plt.figure()
+                    plt.imshow(mean_image_Stracking)
+                    plt.title('Mean speckle tracked data')
+                    plt.figure()
+                    plt.imshow(mean_lucky_Stracking)
+                    plt.title('Mean speckle tracked data (20% best)')
+                    plt.show()
+
+
                     eError=eErrors.E_end_programm
                 case _:
                     et = time.time()
