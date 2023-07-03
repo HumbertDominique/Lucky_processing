@@ -1,18 +1,23 @@
 # Lecture d'image en lucky imaging.
 # 
-# Inspired and somtime only translated form process2.pro (L.J)
+# Inspired and somtime simply translated form process2.pro (L.J)
 #
 # 2023.06.26    -   Dominique Humbert   -   Version initiale
 
 from astropy.io import fits
 import numpy as np
 from customClasses import eErrors
-from customClasses import plotTypes
-
-import matplotlib.pyplot as plt
 from astropy import stats
 
-
+'''------------------------------------------------------------------------------------
+    # eError_handling(code)
+    Error handling routine and help
+    ## min:
+      n : number of images
+      fname : filename
+    ## out:
+      data: 3D array with pixel data
+    ------------------------------------------------------------------------------------'''
 def eError_handling(code):
     match code:
         case eErrors.E_all_fine:
@@ -21,31 +26,31 @@ def eError_handling(code):
             print("--------------------------")
             print("Too many arguments")
             print("arg1 = process\n\
-                  1:Read and save data\n\
-                  2: Whole process\n\
-                  3: ROI\n\
-                  4: Sigma filter\n\
-                  10: plot")
-            print("arg2 = plot type\n\
-                  raw : raw images\n\
-                  roi: ROI normalised\
-                  sigma: sigma filtered image\
-                  mask: appoximation mask\
-                  approx: picture with approximated mask\
-                  no_bcg: picture with backgound removed")
+                  0: Read and save data\n\
+                  1: Whole process\n\
+                  2: ROI and the rest\n\
+                  3: Sigma filter and the rest\n\
+                  4: Normalisation\n\
+                  5: Background removal\n\
+                  6: Noise cut (if implemented)\n\
+                  7: -\n\
+                  8: Gausian oise filtering (if implemented)\n\
+                  9: Dust shadow removal\n\
+                  10: tracking\n\
+                  11: Selection\n\
+                  12: plots")
+            print("arg2 = image")
             print("--------------------------")
 
 
 def readData(n, fname):
     '''------------------------------------------------------------------------------------
-    readData(n, fname)
-
+    # readData(n, fname)
     Reads n .fits files with the path fnameXXX.fits (3 or more X's)
-
-    in:
+    ## min:
       n : number of images
       fname : filename
-    out:
+    ## out:
       data: 3D array with pixel data
     ------------------------------------------------------------------------------------'''
     status = 0
@@ -59,8 +64,9 @@ def readData(n, fname):
         if 100*(i+1)//n == status*10:
             print('Reading data: ',status*10,'% done')
             status += 1
-
+    print('Saving intermediate data')
     np.save('temp/data_raw',data, allow_pickle=True, fix_imports=True)
+    print('Done')
     return data
 
 
@@ -83,7 +89,9 @@ def ROI(n,data_in):
         data_in = np.load('temp/data_raw.npy')
 
     data = data_in[530-256:530+256,600-256:600+256,:]     # Manually done
+    print('Saving intermediate data')
     np.save('temp/data_roi',data, allow_pickle=True, fix_imports=True)
+    print('Done')
 
     return data
 
@@ -118,7 +126,9 @@ def normalise(n,data, bits_depth = 12):
                 print('Normalising data: ',status*10,'% done')
                 status += 1
 
+        print('Saving intermediate data')
         np.save('temp/data_norm',data, allow_pickle=True, fix_imports=True)
+        print('Done')
     return data
 
 
@@ -153,32 +163,10 @@ def sigma(data,n=None):
         if 100*(i+1)//n == status*10:
                 print('Sigma filter: ',status*10,'% done')
                 status += 1
+    print('Saving intermediate data')
     np.save('temp/data_sigma',data_sigma, allow_pickle=True, fix_imports=True)
+    print('Done')
     return data_sigma
-
-
-def display_images(data,n=1):
-    '''------------------------------------------------------------------------------------
-    display_images(plotType)
-
-    in:
-      plotType : omage to plot
-    out:
-      -
-     
-    to do:
-      add image selection
-    ------------------------------------------------------------------------------------'''
-
-    if n > 1:
-        for i in range(n):
-            plt.figure()
-            plt.imshow(data[:,:,i], cmap='gray')
-    else:
-        plt.imshow(data, cmap='gray')
-    plt.show()
-    
-
 
 def buid_mask(data,radius,center=[None,None]):
     '''#------------------------------------------------------------------------------------

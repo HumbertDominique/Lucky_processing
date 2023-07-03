@@ -35,23 +35,23 @@ k = len(sys.argv)
 match k:
     case 1:
         
-        a=7
-        plot_type = None
+        a = None
+        b = None
         eError = eErrors.E_arg_error
     case 2:
         a = int(sys.argv[1])
-        plot_type = None
+        b = None
         eError = eErrors.E_all_fine
     case 3:
         a = int(sys.argv[1])
-        plot_type = np.array(sys.argv[2])
+        b = int(sys.argv[2])
         eError = eErrors.E_all_fine
     case _:
         eError = eErrors.E_arg_error
         a=11
 
 
-def main(a, eError=eErrors.E_all_fine):
+def main(a, b, eError=eErrors.E_all_fine):
     if (eError == eErrors.E_all_fine):
         st = time.time()
         # ------------------------------Variables------------------------------
@@ -71,21 +71,16 @@ def main(a, eError=eErrors.E_all_fine):
             # check if current path is a file
             if os.path.isfile(os.path.join(dir_path, path)):
                 n += 1
+
         # -----------------------------Debug-----------------------------
-        # -----------------------------Debug-----------------------------
-        # -----------------------------Debug-----------------------------
-        # -----------------------------Debug-----------------------------
-        n = 2000
-        # -----------------------------Debug-----------------------------
-        # -----------------------------Debug-----------------------------
-        # -----------------------------Debug-----------------------------
+        if b is None:       # qty of frames to use
+            b = 20
+        else:
+            n = b
         # -----------------------------Debug-----------------------------
 
         path = folder+filename
-
-
         data = None
-        
 
         # -------------------------------program--------------------------------
         while eError==eErrors.E_all_fine:
@@ -94,13 +89,17 @@ def main(a, eError=eErrors.E_all_fine):
                     print('Read data')
                     data = fnc.readData(n,path)
                     mean_image_raw = np.sum(data,2)/n
-                    np.save('temp/mean_image_raw',mean_image_raw, allow_pickle=True, fix_imports=True)  
+                    print('Saving intermediate data')
+                    np.save('temp/mean_image_raw',mean_image_raw, allow_pickle=True, fix_imports=True)
+                    print('Done')  
                     eError=eErrors.E_end_programm
                 case 1:
                     print('Read data')
                     data = fnc.readData(n,path)
                     mean_image_raw = np.sum(data,2)/n
+                    print('Saving intermediate data')
                     np.save('temp/mean_image_raw',mean_image_raw, allow_pickle=True, fix_imports=True)
+                    print('Done')
                     # plt.figure()
                     # plt.imshow(data[:,:,0],cmap='gray',vmin=0,vmax=4095)
                     # plt.title('Raw image')
@@ -174,15 +173,18 @@ def main(a, eError=eErrors.E_all_fine):
                         if 100*i//n == status*10:
                             print('background removal: ',status*10,'% done')
                             status += 1
+
+                    print('Saving intermediate data')
                     np.save('temp/data_mask',mask, allow_pickle=True, fix_imports=True)
                     del mask
                     np.save('temp/data_model',model, allow_pickle=True, fix_imports=True)
                     del model
                     np.save('temp/data_bcg',data, allow_pickle=True, fix_imports=True)
-
+                    print('Done')
 
                     mean_image_bcg = np.sum(data,2)/n 
                     np.save('temp/mean_image_bcg',mean_image_bcg, allow_pickle=True, fix_imports=True)
+                    print('Done')
                     # plt.figure()
                     # plt.imshow(data[:,:,0])
                     # plt.title('Bcg removed image')
@@ -223,8 +225,9 @@ def main(a, eError=eErrors.E_all_fine):
 
                     # for i in range(0,n):
                     #     data[:,:,0] = fnc.noise_filter(data[:,:,0],1)
+                    # print('Saving intermediate data')
                     # np.save('temp/data_filtered',data, allow_pickle=True, fix_imports=True)
-
+                    # print('Done')
                     # plt.figure()
                     # plt.imshow(data[:,:,0],cmap='gray')
                     # text_temp = 'Noise filtered'
@@ -256,10 +259,13 @@ def main(a, eError=eErrors.E_all_fine):
                             print('Dust shadow removal: ',status*10,'% done')
                             status += 1
                     
+                    print('Saving intermediate data')
                     np.save('temp/data_dustfree',data, allow_pickle=True, fix_imports=True)
 
                     mean_image_dustfree = np.sum(data,2)/n 
                     np.save('temp/mean_image_dustfree',mean_image_dustfree, allow_pickle=True, fix_imports=True)
+                    print('Done')
+
                     plt.figure()
                     plt.imshow(mean_image_dustfree)
                     text_temp = 'Dust shadow removed'
@@ -283,10 +289,12 @@ def main(a, eError=eErrors.E_all_fine):
                             print('Tracking: ',status*10,'% done')
                             status += 1
 
+                    print('Saving intermediate data')
                     np.save('temp/data_Stracked',data, allow_pickle=True, fix_imports=True)
 
                     mean_image_Stracking = np.sum(data,2)/n
                     np.save('temp/mean_image_Stracking',mean_image_Stracking, allow_pickle=True, fix_imports=True)
+                    print('Done')
                     # plt.figure()
                     # plt.imshow(mean_image_Stracking)
                     # text_temp = 'Speckle tracking'
@@ -317,11 +325,13 @@ def main(a, eError=eErrors.E_all_fine):
                     # Select only the best
                     data_best  = data[:,:,selected_indices]
 
+                    print('Saving intermediate data')
                     del data
                     np.save('temp/data_best',data_best, allow_pickle=True, fix_imports=True)
 
                     mean_lucky_Stracking = np.sum(data_best,2)/n
                     np.save('temp/mean_lucky_Stracking',mean_lucky_Stracking, allow_pickle=True, fix_imports=True)
+                    print('Done')
                     
                     et = time.time()
                     # get the execution time
@@ -378,21 +388,21 @@ def main(a, eError=eErrors.E_all_fine):
                     mean_image_Stracking = np.load('temp/mean_image_Stracking.npy')
                     mean_lucky_Stracking = np.load('temp/mean_lucky_Stracking.npy')
                     
-                    plt.figure()
-                    plt.imshow(mean_raw)
-                    plt.title('Mean raw data')
-                    plt.figure()
-                    plt.imshow(mean_bcg)
-                    plt.title('Mean Bcg removed data')
-                    plt.figure()
-                    plt.imshow(mean_dustfree)
-                    plt.title('Mean dustfree data')
-                    plt.figure()
-                    plt.imshow(mean_image_Stracking)
-                    plt.title('Mean speckle tracked data')
-                    plt.figure()
-                    plt.imshow(mean_lucky_Stracking)
-                    plt.title('Mean speckle tracked data (20% best)')
+                    # plt.figure()
+                    # plt.imshow(mean_raw)
+                    # plt.title('Mean raw data')
+                    # plt.figure()
+                    # plt.imshow(mean_bcg)
+                    # plt.title('Mean Bcg removed data')
+                    # plt.figure()
+                    # plt.imshow(mean_dustfree)
+                    # plt.title('Mean dustfree data')
+                    # plt.figure()
+                    # plt.imshow(mean_image_Stracking)
+                    # plt.title('Mean speckle tracked data')
+                    # plt.figure()
+                    # plt.imshow(mean_lucky_Stracking)
+                    # plt.title('Mean speckle tracked data (20% best)')
                     plt.show()
 
 
@@ -415,4 +425,4 @@ def main(a, eError=eErrors.E_all_fine):
 
 #-----------------KEEP HERE--------------------
 
-main(a)
+main(a,b)
