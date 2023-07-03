@@ -1,7 +1,9 @@
 # Lecture d'image en lucky imaging.
 # 
+# Inspired and somtime only translated form process2.pro (L.J)
 #
 # 2023.06.26    -   Dominique Humbert   -   Version initiale
+
 from astropy.io import fits
 import numpy as np
 from customClasses import eErrors
@@ -9,9 +11,7 @@ from customClasses import plotTypes
 
 import matplotlib.pyplot as plt
 from astropy import stats
-from PIL import Image
-from scipy.interpolate import griddata
-from scipy.ndimage import gaussian_filter
+
 
 def eError_handling(code):
     match code:
@@ -48,19 +48,24 @@ def readData(n, fname):
     out:
       data: 3D array with pixel data
     ------------------------------------------------------------------------------------'''
-
+    status = 1
     for i in range(n):
         filename = fname+'{:03d}'.format(i+1)+'.fits'
         if i==0:                    # Gets the pic size on firts pass
             [k, j] = fits.getdata(fname+'001.fits', ext=0).shape
             data = np.zeros((k,j,n))
         data[:,:,i] = fits.getdata(filename, ext=0)
-        np.save('temp/data_raw',data, allow_pickle=True, fix_imports=True)
+
+        if 100*(i+1)//n == status*10:
+            print('Reading data: ',status*10,'% done')
+            status += 1
+
+    np.save('temp/data_raw',data, allow_pickle=True, fix_imports=True)
     return data
 
 
 
-def ROI(n,data):
+def ROI(n,data_in):
     '''------------------------------------------------------------------------------------
     ROI(n, data)
 
@@ -69,24 +74,56 @@ def ROI(n,data):
     in:
         n : number of images
         data : data: 3D array with pixel data
+        bit_depth : 2^bits resolution (1<=bits<=16)
+    out:
+        data: 3D array with pixel data
+    ------------------------------------------------------------------------------------'''
+    if data_in is None:
+        print('Loading raw data')
+        data_in = np.load('temp/data_raw.npy')
+
+    data = data_in[530-256:530+256,600-256:600+256,:]     # Manually done
+    np.save('temp/data_roi',data, allow_pickle=True, fix_imports=True)
+
+    return data
+
+
+def normalise(n,data, bits_depth = 12):
+    '''------------------------------------------------------------------------------------
+    normalize(n, data,bits_depth)
+
+    Normalise images 
+
+    in:
+        n : number of images
+        data : data: 3D array with pixel data
+        bit_depth : 2^bits resolution (1<=bits<=16)
     out:
         data: 3D array with pixel data
     ------------------------------------------------------------------------------------'''
     if data is None:
-        print('loading raw data')
-        data = np.load('temp/data_raw.npy')
-    data = data[580-295:580+294,555-295:555+294,:]     # Manually done
+        print('Loading sigma data')
+        data = np.load('temp/data_sigma.npy')
 
-    for i in range(n):
-        data[:,:,i] = (data[:,:,i] - np.min(data[:,:,i])) / (np.max(data[:,:,i]) - np.min(data[:,:,i]))
-        data[:,:,i] = (data[:,:,i] * 2**12).astype(np.uint16)
+    if bits_depth<1 or bits_depth>16:
+        print('Invalid bit depth. Chose a bit depth between 1 and 16')
+    else:
+        bits = 12
+        status = 1
+        print('Normalising images in ',bits,'bits')
+        for i in range(n):  #normalise
+            data[:,:,i] = (data[:,:,i] - np.min(data[:,:,i])) / (np.max(data[:,:,i]) - np.min(data[:,:,i]))
+            data[:,:,i] = (data[:,:,i] * 2**bits).astype(np.uint16)
+            if 100*(i+1)//n == status*10:
+                print('Normalising data: ',status*10,'% done')
+                status += 1
 
-    np.save('temp/data_roi',data, allow_pickle=True, fix_imports=True)
+        np.save('temp/data_norm',data, allow_pickle=True, fix_imports=True)
     return data
 
 
 
-def sigma(n,data):
+def sigma(data,n=None):
     '''    ------------------------------------------------------------------------------------
     sigma(n, data)
     in:
@@ -96,12 +133,26 @@ def sigma(n,data):
     data: 3D array with pixel data
     ------------------------------------------------------------------------------------'''
     if data is None:
-        print('loading ROI data')
+        print('Loading ROI data')
         data = np.load('temp/data_roi.npy')
-    [k, j] = data[:,:,1].shape
-    data_sigma = np.zeros((k,j,n))
+        if n is None:
+            k, j, n = data.shape
+            data_sigma = np.zeros((k,j,n))
+        else:
+            k, j, trash_var = data.shape
+            data_sigma = np.zeros((k,j,n))
+    else:
+        if n is None:
+            k, j, n = data.shape
+            data_sigma = np.zeros((k,j,n))
+
+
+    status = 1
     for i in range(n):
-        data_sigma[:,:,i] = stats.sigma_clip(data[:,:,i],maxiters=None)         # A développer
+        data_sigma[:,:,i] = stats.sigma_clip(data[:,:,i],maxiters=None)         # A développer soit même ?
+        if 100*(i+1)//n == status*10:
+                print('Sigma filter: ',status*10,'% done')
+                status += 1
     np.save('temp/data_sigma',data_sigma, allow_pickle=True, fix_imports=True)
     return data_sigma
 
@@ -129,7 +180,7 @@ def display_images(data,n=1):
     
 
 
-def buid_mask(data,radius,center=None):
+def buid_mask(data,radius,center=[None,None]):
     '''#------------------------------------------------------------------------------------
         buid_maks(data,center=None)
 
@@ -145,21 +196,20 @@ def buid_mask(data,radius,center=None):
 
     width, height = data.shape
 
-    if center == None:
+    if not (center[0] and center[1]):
         center = np.zeros((2))
-        center[0] = width // 2  # x
-        center[1] = height // 2 # x
+        center[0] = height // 2  # x
+        center[1] = width // 2 # x
 
-    x = np.linspace(0, width-1, width).astype(np.uint16)
-    y = np.linspace(0, height-1, height).astype(np.uint16)
+    x = np.linspace(0, height-1, height).astype(np.uint16)
+    y = np.linspace(0, width-1, width).astype(np.uint16)
     grid_x, grid_y = np.meshgrid(x, y)
-                    
+                
     distance_from_center = np.sqrt((grid_x - center[0])**2 + (grid_y - center[1])**2)
-
     # Créer le masque pour exclure les pixels à l'intérieur du cercle
     mask = distance_from_center <= radius
-
     return mask
+
 
 
 def polynomial_mask(data, mask,order=4):
@@ -169,14 +219,13 @@ def polynomial_mask(data, mask,order=4):
 
         in:
           data : image to interpolate from
-          mask_radius : mask radius in px
+          mask : mask boolean mask. True means to be removed
           Order : Order of the appoximation. Default = 4
         
         out: 
           approximated image
          
         to do:
-          add mask cendered on speckle or centroid
         ------------------------------------------------------------------------------------'''
 
     nmodes = int(((order+1)**2-(order+1))/2+(order+1))
@@ -191,18 +240,17 @@ def polynomial_mask(data, mask,order=4):
     basis = np.zeros((width,height,nmodes))
 
     Mx = np.zeros((width,height))
-    for i in range(height):
-        Mx[i,:] = index_x
     My = np.zeros((width,height))
-    for i in range(width):
-        My[:,i] = index_y
+    for i in range(height):
+        Mx[:,i] = index_x
+    for i in range(width):    
+        My[i,:] = index_y
  
     j_mode = -1
     for i in range(order+1):
         for j in range(i+1):
             j_mode +=1
             basis[:,:,j_mode] =Mx**(i-j)*My**j
-    print(basis[0:5,0:5,11])
     A = np.zeros((nmodes,nmodes)).astype(np.double)
 
     for i in range(0,nmodes):
@@ -211,7 +259,6 @@ def polynomial_mask(data, mask,order=4):
             #A[j,i] = A[i,j]
             #A=A.T
             #print(i,j)
-    print(A[1,0])
 
     b = np.zeros(nmodes)
     for i in range(nmodes):
@@ -223,3 +270,117 @@ def polynomial_mask(data, mask,order=4):
         model += a[i]*basis[:,:,i] 
     
     return model
+
+
+def noise_cut(data, threshold=None):
+    '''------------------------------------------------------------------------------------
+        noise_cut(data, threshold=None)
+        Noise cut filter
+
+        in:
+          data : image to interpolate from. square and dimmentions are ^2 (padding not implemented)
+          threshold : cutting thresholde
+        
+        out: 
+          approximated image
+         
+        to do:
+            faire fonctionner
+        ------------------------------------------------------------------------------------'''
+
+    if threshold is None:
+        threshold = 0.5*1                  # à définir avec Nyquist
+
+    # Perform Fourier transform
+    data_tf = np.fft.fftshift(np.fft.fft2(data))
+    
+    # Apply filter in Fourier domain
+    mask = np.abs(data_tf) > threshold
+    data_tf_filtered = data_tf*mask
+    
+    # Inverse Fourier transform
+    data = np.fft.ifft2(np.fft.ifftshift(data_tf_filtered)).real
+
+    
+    return data.astype(np.double)
+
+def noise_filter(data,sigma=None):
+    '''------------------------------------------------------------------------------------
+        noise_filtering(data, sigma=1)
+        gaussin noise filtering
+
+        in:
+          data : image to interpolate from. square and dimmentions are ^2 (padding not implemented)
+          sigma : 
+        
+        out: 
+          approximated image
+         
+        to do:
+        ------------------------------------------------------------------------------------'''
+
+    if sigma is None:
+        print('Input image Std for gaussian noise filtering')
+    else:
+        width, height = data.shape
+
+        index_x = np.linspace(-1,1,width)
+        index_y = np.linspace(-1,1,height)
+
+        Mx = np.zeros((width,height))
+        My = np.zeros((width,height))
+        for i in range(height):
+            Mx[:,i] = index_x
+        for i in range(width):    
+            My[i,:] = index_y
+
+        # Perform Fourier transform
+        data_tf = np.fft.fftshift(np.fft.fft2(data))
+        
+        # Apply filter in Fourier domain
+
+        
+        G = (1/(2*np.pi*sigma)**0.5)*np.exp((Mx**2+My**2)/(2*sigma**2))
+
+        data_tf_filtered = data_tf*G
+        
+        # Inverse Fourier transform
+        data = np.fft.ifft2(np.fft.ifftshift(data_tf_filtered)).real
+
+
+    return data.astype(np.double)
+
+def image_dusting(data,model, NdustSpots=1):
+    '''------------------------------------------------------------------------------------
+        image_dusting(data, sigma=1)
+        gaussin noise filtering
+
+        in:
+          data: image to remove shdows from.
+          model: shadow model
+          NdustSpots: Number of spots to remove
+        
+        out: 
+          shadowless image
+         
+        to do:
+        ------------------------------------------------------------------------------------'''
+    width, height = data.shape
+    spot_model_radius, trash = model.shape
+    spot_model_radius //= 2
+
+    bigger = np.zeros((width+2*spot_model_radius, height+2*spot_model_radius))  # Allows for removal of shadows that are not entierly on the image
+    index = np.zeros(2)
+    for i in range(NdustSpots):
+                        
+        index = np.unravel_index(data.argmin(), data.shape)
+        aa = index[0]-spot_model_radius
+        bb = index[0]+spot_model_radius
+        cc = index[1]-spot_model_radius
+        dd = index[1]+spot_model_radius
+                        
+        bigger[spot_model_radius:width+spot_model_radius,spot_model_radius:height+spot_model_radius] = data[:,:]
+        bigger[index[0]:index[0]+2*spot_model_radius,index[1]:index[1]+2*spot_model_radius] -= model*data[index[0],index[1]]
+        data[:,:] = bigger[spot_model_radius:width+spot_model_radius,spot_model_radius:height+spot_model_radius]
+
+    return data
