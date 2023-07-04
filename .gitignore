@@ -5,3 +5,4 @@ __pycache__
 temp
 IRSOL1/temp/data_raw.npy
 IRSOL1/temp/data_roi.npy
+.zip

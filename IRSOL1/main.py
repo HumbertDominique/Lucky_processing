@@ -14,11 +14,13 @@
 
 #------------------LIBRARIES
 from astropy.io import fits
+from astropy import stats
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import functions as fnc
 import numpy as np
 from matplotlib.ticker import LinearLocator
+from scipy import ndimage
 
 import os
 import time
@@ -26,17 +28,16 @@ import sys
 from customClasses import eErrors
 
 
-
-global eError
-eError = eErrors.E_all_fine
-r = 0.2     # [%]
+#----------------------Global variables----------
+global eError; eError = eErrors.E_all_fine
+#global r; r = 0.2     # [%]
+#------------------------------------------------
 
 k = len(sys.argv)
 match k:
     case 1:
-        
-        a = None
-        b = None
+        a = 0
+        b = 0
         eError = eErrors.E_arg_error
     case 2:
         a = int(sys.argv[1])
@@ -46,16 +47,32 @@ match k:
         a = int(sys.argv[1])
         b = int(sys.argv[2])
         eError = eErrors.E_all_fine
+    case 4:
+        a = int(sys.argv[1])
+        b = int(sys.argv[2])
+        r = float(sys.argv[3])
+        eError = eErrors.E_all_fine
     case _:
         eError = eErrors.E_arg_error
-        a=11
+        a=0
 
 
-def main(a, b, eError=eErrors.E_all_fine):
+def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
+    '''------------------------------------------------------------------------------------
+    # main(a, b, eError=eErrors.E_arg_error)
+    Processes lucky imaging frames
+    ## in:
+      a: number of images
+      b: 
+      c:
+    ## out:
+      data: 3D array with pixel data
+    ------------------------------------------------------------------------------------'''
+
     if (eError == eErrors.E_all_fine):
         st = time.time()
         # ------------------------------Variables------------------------------
-
+        data = None
         folder = 'Attempt2'
         filename = '/Attempt2_'
         path = folder+filename
@@ -72,15 +89,14 @@ def main(a, b, eError=eErrors.E_all_fine):
             if os.path.isfile(os.path.join(dir_path, path)):
                 n += 1
 
-        # -----------------------------Debug-----------------------------
+        # ----------------------------------------------------------
         if b is None:       # qty of frames to use
             b = 20
         else:
             n = b
-        # -----------------------------Debug-----------------------------
+        # ----------------------------------------------------------
 
         path = folder+filename
-        data = None
 
         # -------------------------------program--------------------------------
         while eError==eErrors.E_all_fine:
@@ -125,7 +141,18 @@ def main(a, b, eError=eErrors.E_all_fine):
                     
                 case 3:
                     print('Sigma filter')
-                    data = fnc.sigma(data)
+                    if data is None:
+                        print('Loading ROI data')
+                        data = np.load('temp/data_roi.npy')
+                    
+                    status = 0
+                    for i in range(0,n):
+                        data[0,0,i] = stats.sigma_clip(data[:,:],maxiters=None)
+                        if 100*i//n == status*10:
+                            print('Sigma filtering: ',status*10,'% done')
+                            status += 1
+                    np.save('temp/data_sigma',data, allow_pickle=True, fix_imports=True)
+                    print('Done')
                     mean_image_sigma = np.sum(data,2)/n
                     # plt.figure()
                     # plt.imshow(data[:,:,0],cmap='gray',vmin=0,vmax=4095)
@@ -141,7 +168,20 @@ def main(a, b, eError=eErrors.E_all_fine):
                     
                 case 4:
                     print('Normalisation')
-                    data = fnc.normalise(n,data,12)
+                    if data is None:
+                        print('Loading sigma data')
+                        data = np.load('temp/data_sigma.npy')
+
+                    status = 0
+                    for i in range(0,n):
+                        data[:,:,i] = fnc.normalise(data[:,:,i],12)
+                        if 100*i//n == status*10:
+                            print('Sigma filtering: ',status*10,'% done')
+                            status += 1
+
+                    print('Saving intermediate data')
+                    np.save('temp/data_norm',data, allow_pickle=True, fix_imports=True)
+                    print('Done')
                     mean_image_norm = np.sum(data,2)/n
 
                 
@@ -155,8 +195,12 @@ def main(a, b, eError=eErrors.E_all_fine):
                     
                     print("Speckles location")
                     speckles = np.zeros((2,n))
+                    status = 0
                     for i in range(n):
                         speckles[:,i] = np.unravel_index(data[:,:,i].argmax(), data[:,:,i].shape)
+                        if 100*i//n == status*10:
+                            print('Locating brightest speckles: ',status*10,'% done')
+                            status += 1
 
 
                     mask = np.zeros((data.shape))  # Remove if using mask and model at the same time as data takes too much
@@ -266,10 +310,10 @@ def main(a, b, eError=eErrors.E_all_fine):
                     np.save('temp/mean_image_dustfree',mean_image_dustfree, allow_pickle=True, fix_imports=True)
                     print('Done')
 
-                    plt.figure()
-                    plt.imshow(mean_image_dustfree)
-                    text_temp = 'Dust shadow removed'
-                    plt.title(text_temp)
+                    # plt.figure()
+                    # plt.imshow(mean_image_dustfree)
+                    # text_temp = 'Dust shadow removed'
+                    # plt.title(text_temp)
                     # plt.show()
                 case 10:
                     print('tracking')  
@@ -331,6 +375,7 @@ def main(a, b, eError=eErrors.E_all_fine):
 
                     mean_lucky_Stracking = np.sum(data_best,2)/n
                     np.save('temp/mean_lucky_Stracking',mean_lucky_Stracking, allow_pickle=True, fix_imports=True)
+
                     print('Done')
                     
                     et = time.time()
@@ -343,42 +388,69 @@ def main(a, b, eError=eErrors.E_all_fine):
                     text_temp = 'Mean {r:.2f}% speckle tracked frames'
                     plt.title(text_temp.format(r=100*r))
 
-                    mean_lucky_Stracking_norm =(mean_lucky_Stracking - np.min(mean_lucky_Stracking)) / (np.max(mean_lucky_Stracking) - np.min(mean_lucky_Stracking))
-                    max = np.unravel_index(mean_lucky_Stracking_norm.argmax(), mean_lucky_Stracking_norm.shape)
+                    mean_lucky_Stracking_norm = fnc.normalise(mean_lucky_Stracking,12)
+                    # max = np.unravel_index(mean_lucky_Stracking_norm.argmax(), mean_lucky_Stracking_norm.shape)
+                    # plt.figure()
+                    # plt.plot(mean_lucky_Stracking_norm[max[0],:])
+                    # plt.grid()
+                    # text_temp = 'Vertical cut'
+                    # plt.title(text_temp)
+                    # plt.figure()
+                    # plt.plot(mean_lucky_Stracking_norm[:,max[1]])
+                    # plt.grid()
+                    # text_temp = 'Horizontal cut'
+                    # plt.title(text_temp)
+
+                    #---------------------3D plot
+                    # fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+                    # # Make data.
+                    # widht, height = mean_lucky_Stracking.shape
+                    # X = np.arange(-widht//2, widht//2,1)
+                    # Y = np.arange(-height//2, height//2,1)
+                    # X, Y = np.meshgrid(X, Y)
+                    # R = np.sqrt(X**2 + Y**2)
+                    # Z = np.sin(R)
+                    # # Plot the surface.
+                    # surf = ax.plot_surface(X, Y, mean_lucky_Stracking_norm, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+                    # # Customize the z axis.
+                    # ax.set_zlim(0, 1)
+                    # ax.zaxis.set_major_locator(LinearLocator(10))
+                    # ax.zaxis.set_major_formatter('{x:.02f}')
+                    # fig.colorbar(surf, shrink=0.5, aspect=5)
+                    # text_temp = 'Mean {r:.2f}% speckle tracked frames'
+                    # plt.title(text_temp.format(r=100*r))
+                    #----------------------
+
+
+                    mean_lucky_Stracking_rot = ndimage.rotate(mean_lucky_Stracking, 35,reshape=False)
+                  
+
+
+                    mean_lucky_Stracking_rot_norm = fnc.normalise(mean_lucky_Stracking_rot,0)
+                    mean_lucky_Stracking_rot_norm = fnc.normalise(mean_lucky_Stracking_rot_norm,0)
+
                     plt.figure()
-                    plt.plot(mean_lucky_Stracking_norm[max[0],:])
-                    plt.grid()
-                    text_temp = 'Horizontal cut'
-                    plt.title(text_temp)
+                    plt.imshow(mean_lucky_Stracking_rot_norm)
+                    
+                    max = np.unravel_index(mean_lucky_Stracking_rot_norm.argmax(), mean_lucky_Stracking_rot_norm.shape)
+
+                    cut_1 = mean_lucky_Stracking_rot_norm[max[0],:]
+                    cut_1 = ((cut_1-np.min(cut_1))/(np.max(cut_1)-np.min(cut_1)))
+                    cut_2 = mean_lucky_Stracking_rot_norm[:,max[1]]
+                    cut_2 = ((cut_2-np.min(cut_2))/(np.max(cut_2)-np.min(cut_2)))
+
                     plt.figure()
-                    plt.plot(mean_lucky_Stracking_norm[:,max[1]])
+                    plt.plot(cut_1)
                     plt.grid()
                     text_temp = 'Vertical cut'
                     plt.title(text_temp)
-
-                    # 3D plot
-                    fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-                    # Make data.
-                    widht, height = mean_lucky_Stracking.shape
-                    X = np.arange(-widht//2, widht//2,1)
-                    Y = np.arange(-height//2, height//2,1)
-                    X, Y = np.meshgrid(X, Y)
-                    R = np.sqrt(X**2 + Y**2)
-                    Z = np.sin(R)
-
-                    # Plot the surface.
-                    surf = ax.plot_surface(X, Y, mean_lucky_Stracking_norm, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-                    # Customize the z axis.
-                    ax.set_zlim(0, 1)
-                    ax.zaxis.set_major_locator(LinearLocator(10))
-                    # A StrMethodFormatter is used automatically
-                    ax.zaxis.set_major_formatter('{x:.02f}')
-                    # Add a color bar which maps values to colors.
-                    fig.colorbar(surf, shrink=0.5, aspect=5)
-                    text_temp = 'Mean {r:.2f}% speckle tracked frames'
-                    plt.title(text_temp.format(r=100*r))
+                    plt.figure()
+                    plt.plot(cut_2)
+                    plt.grid()
+                    text_temp = 'Horizontal cut'
+                    plt.title(text_temp)                                     
                     plt.show()
-                    eError=eErrors.E_end_programm             
+                    eError=eErrors.E_end_programm   
 
                 case 12:
                     print('display')
@@ -403,6 +475,9 @@ def main(a, b, eError=eErrors.E_all_fine):
                     # plt.figure()
                     # plt.imshow(mean_lucky_Stracking)
                     # plt.title('Mean speckle tracked data (20% best)')
+
+                    
+
                     plt.show()
 
 
@@ -425,4 +500,4 @@ def main(a, b, eError=eErrors.E_all_fine):
 
 #-----------------KEEP HERE--------------------
 
-main(a,b)
+lucky_process(a,b,r,eError)

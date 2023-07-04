@@ -7,17 +7,15 @@
 from astropy.io import fits
 import numpy as np
 from customClasses import eErrors
-from astropy import stats
+import matplotlib.pyplot as plt
 
 '''------------------------------------------------------------------------------------
     # eError_handling(code)
     Error handling routine and help
-    ## min:
-      n : number of images
-      fname : filename
+    ## in:
+      code: errore code
     ## out:
-      data: 3D array with pixel data
-    ------------------------------------------------------------------------------------'''
+        -    ------------------------------------------------------------------------------------'''
 def eError_handling(code):
     match code:
         case eErrors.E_all_fine:
@@ -26,20 +24,20 @@ def eError_handling(code):
             print("--------------------------")
             print("Too many arguments")
             print("arg1 = process\n\
-                  0: Read and save data\n\
-                  1: Whole process\n\
-                  2: ROI and the rest\n\
-                  3: Sigma filter and the rest\n\
-                  4: Normalisation\n\
-                  5: Background removal\n\
-                  6: Noise cut (if implemented)\n\
-                  7: -\n\
-                  8: Gausian oise filtering (if implemented)\n\
-                  9: Dust shadow removal\n\
-                  10: tracking\n\
-                  11: Selection\n\
-                  12: plots")
-            print("arg2 = image")
+    0: Read and save data\n\
+    1: Whole process\n\
+    2: ROI and the rest\n\
+    3: Sigma filter and the rest\n\
+    4: Normalisation\n\
+    5: Background removal\n\
+    6: Noise cut (if implemented)\n\
+    7: -\n\
+    8: Gausian oise filtering (if implemented)\n\
+    9: Dust shadow removal\n\
+    10: tracking\n\
+    11: Selection\n\
+    12: plots")
+            print("arg2 = fraction of frames to use (ie. 0.2)")
             print("--------------------------")
 
 
@@ -47,9 +45,9 @@ def readData(n, fname):
     '''------------------------------------------------------------------------------------
     # readData(n, fname)
     Reads n .fits files with the path fnameXXX.fits (3 or more X's)
-    ## min:
-      n : number of images
-      fname : filename
+    ## in:
+      n: number of images
+      fname: filename
     ## out:
       data: 3D array with pixel data
     ------------------------------------------------------------------------------------'''
@@ -73,15 +71,15 @@ def readData(n, fname):
 
 def ROI(n,data_in):
     '''------------------------------------------------------------------------------------
-    ROI(n, data)
+    # ROI(n, data)
 
     Applies a 2-D region of interest do a 3-D array 
 
-    in:
-        n : number of images
-        data : data: 3D array with pixel data
-        bit_depth : 2^bits resolution (1<=bits<=16)
-    out:
+    ## in:
+        n: number of images
+        data: data: 3D array with pixel data
+        bit_depth: 2^bits resolution (1<=bits<=16)
+    ## out:
         data: 3D array with pixel data
     ------------------------------------------------------------------------------------'''
     if data_in is None:
@@ -96,77 +94,31 @@ def ROI(n,data_in):
     return data
 
 
-def normalise(n,data, bits_depth = 12):
+def normalise(data, bits_depth = 12,):
     '''------------------------------------------------------------------------------------
-    normalize(n, data,bits_depth)
+    # normalize(data,bits_depth)
 
     Normalise images 
 
-    in:
-        n : number of images
+    ## in:
         data : data: 3D array with pixel data
         bit_depth : 2^bits resolution (1<=bits<=16)
-    out:
+    ## out:
         data: 3D array with pixel data
     ------------------------------------------------------------------------------------'''
-    if data is None:
-        print('Loading sigma data')
-        data = np.load('temp/data_sigma.npy')
+    
 
-    if bits_depth<1 or bits_depth>16:
-        print('Invalid bit depth. Chose a bit depth between 1 and 16')
-    else:
+    if bits_depth<0 or bits_depth>16:
         bits = 12
-        status = 0
-        print('Normalising images in ',bits,'bits')
-        for i in range(n):  #normalise
-            data[:,:,i] = (data[:,:,i] - np.min(data[:,:,i])) / (np.max(data[:,:,i]) - np.min(data[:,:,i]))
-            data[:,:,i] = (data[:,:,i] * 2**bits).astype(np.uint16)
-            if 100*(i+1)//n == status*10:
-                print('Normalising data: ',status*10,'% done')
-                status += 1
+        #print('Normalising images in ',bits,'bits')
+        data[:,:] = (data[:,:] - np.min(data[:,:])) / (np.max(data[:,:]) - np.min(data[:,:]))
+        data[:,:] = (data[:,:] * 2**bits).astype(np.uint16)
 
-        print('Saving intermediate data')
-        np.save('temp/data_norm',data, allow_pickle=True, fix_imports=True)
-        print('Done')
+    if bits_depth == 0:
+        data[:,:] = ((data[:,:] - np.min(data[:,:])) / (np.max(data[:,:]) - np.min(data[:,:]))).astype(np.double)  
+
     return data
 
-
-
-def sigma(data,n=None):
-    '''    ------------------------------------------------------------------------------------
-    sigma(n, data)
-    in:
-    n : number of images
-    data : data: 3D array with pixel data
-    out:
-    data: 3D array with pixel data
-    ------------------------------------------------------------------------------------'''
-    if data is None:
-        print('Loading ROI data')
-        data = np.load('temp/data_roi.npy')
-        if n is None:
-            k, j, n = data.shape
-            data_sigma = np.zeros((k,j,n))
-        else:
-            k, j, trash_var = data.shape
-            data_sigma = np.zeros((k,j,n))
-    else:
-        if n is None:
-            k, j, n = data.shape
-            data_sigma = np.zeros((k,j,n))
-
-
-    status = 0
-    for i in range(n):
-        data_sigma[:,:,i] = stats.sigma_clip(data[:,:,i],maxiters=None)         # A développer soit même ?
-        if 100*(i+1)//n == status*10:
-                print('Sigma filter: ',status*10,'% done')
-                status += 1
-    print('Saving intermediate data')
-    np.save('temp/data_sigma',data_sigma, allow_pickle=True, fix_imports=True)
-    print('Done')
-    return data_sigma
 
 def buid_mask(data,radius,center=[None,None]):
     '''#------------------------------------------------------------------------------------
@@ -182,15 +134,15 @@ def buid_mask(data,radius,center=[None,None]):
         ------------------------------------------------------------------------------------
     '''
 
-    width, height = data.shape
+    height,width = data.shape
 
     if not (center[0] and center[1]):
         center = np.zeros((2))
         center[0] = height // 2  # x
         center[1] = width // 2 # x
 
-    x = np.linspace(0, height-1, height).astype(np.uint16)
-    y = np.linspace(0, width-1, width).astype(np.uint16)
+    x = np.linspace(0, width-1, width).astype(np.uint16)
+    y = np.linspace(0, height-1, height).astype(np.uint16)
     grid_x, grid_y = np.meshgrid(x, y)
                 
     distance_from_center = np.sqrt((grid_x - center[0])**2 + (grid_y - center[1])**2)
@@ -219,19 +171,19 @@ def polynomial_mask(data, mask,order=4):
     nmodes = int(((order+1)**2-(order+1))/2+(order+1))
     mask_dbl = np.zeros(mask.shape)
     mask_dbl[mask==False] = 1.   # met des 1. là ou le masque n'est pas présent
-    width, height = data.shape
+    height, width = data.shape
     model = np.zeros(mask.shape)
 
     index_x = np.linspace(-1,1,width)
     index_y = np.linspace(-1,1,height)
 
-    basis = np.zeros((width,height,nmodes))
+    basis = np.zeros((height,width,nmodes))
 
-    Mx = np.zeros((width,height))
-    My = np.zeros((width,height))
-    for i in range(height):
+    Mx = np.zeros((height,width))
+    My = np.zeros((height,width))
+    for i in range(width):
         Mx[:,i] = index_x
-    for i in range(width):    
+    for i in range(height):    
         My[i,:] = index_y
  
     j_mode = -1
@@ -253,7 +205,7 @@ def polynomial_mask(data, mask,order=4):
          b[i]=np.sum(data*basis[:,:,i]*mask_dbl)
 
     a = np.dot(np.linalg.inv(A),b)
-    model = np.zeros((width,height))
+    model = np.zeros((height,width))
     for i in range(0,nmodes):
         model += a[i]*basis[:,:,i] 
     
@@ -310,13 +262,13 @@ def noise_filter(data,sigma=None):
     if sigma is None:
         print('Input image Std for gaussian noise filtering')
     else:
-        width, height = data.shape
+        height, width = data.shape
 
         index_x = np.linspace(-1,1,width)
         index_y = np.linspace(-1,1,height)
 
-        Mx = np.zeros((width,height))
-        My = np.zeros((width,height))
+        Mx = np.zeros((height,width))
+        My = np.zeros((height,width))
         for i in range(height):
             Mx[:,i] = index_x
         for i in range(width):    
@@ -353,11 +305,11 @@ def image_dusting(data,model, NdustSpots=1):
          
         to do:
         ------------------------------------------------------------------------------------'''
-    width, height = data.shape
+    height,width = data.shape
     spot_model_radius, trash = model.shape
     spot_model_radius //= 2
 
-    bigger = np.zeros((width+2*spot_model_radius, height+2*spot_model_radius))  # Allows for removal of shadows that are not entierly on the image
+    bigger = np.zeros((height+2*spot_model_radius, width+2*spot_model_radius))  # Allows for removal of shadows that are not entierly on the image
     index = np.zeros(2)
     for i in range(NdustSpots):
                         
@@ -367,8 +319,9 @@ def image_dusting(data,model, NdustSpots=1):
         cc = index[1]-spot_model_radius
         dd = index[1]+spot_model_radius
                         
-        bigger[spot_model_radius:width+spot_model_radius,spot_model_radius:height+spot_model_radius] = data[:,:]
+        bigger[spot_model_radius:height+spot_model_radius,spot_model_radius:width+spot_model_radius] = data[:,:]
         bigger[index[0]:index[0]+2*spot_model_radius,index[1]:index[1]+2*spot_model_radius] -= model*data[index[0],index[1]]
-        data[:,:] = bigger[spot_model_radius:width+spot_model_radius,spot_model_radius:height+spot_model_radius]
+        data[:,:] = bigger[spot_model_radius:height+spot_model_radius,spot_model_radius:width+spot_model_radius]
 
     return data
+
