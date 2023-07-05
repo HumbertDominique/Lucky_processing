@@ -467,7 +467,8 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     #data_roi = np.load('temp/data_roi.npy')
                     #mean_lucky_Stracking = np.load('temp/mean_lucky_Stracking.npy')
                     #plt.imsave('roi.jpg',data_roi[:,:,0])
-                    plt.imsave('mean_lucky_Stracking.jpg',mean_lucky_Stracking)
+                    text_temp = 'mean_lucky_Stracking_{r:d}.jpg'
+                    plt.imsave(text_temp.format(r=int(100*r)),mean_lucky_Stracking)
 
 
                     # plt.figure()
