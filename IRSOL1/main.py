@@ -21,6 +21,8 @@ import functions as fnc
 import numpy as np
 from matplotlib.ticker import LinearLocator
 from scipy import ndimage
+from PIL import Image
+
 
 import os
 import time
@@ -38,14 +40,17 @@ match k:
     case 1:
         a = 0
         b = 0
+        r = None
         eError = eErrors.E_arg_error
     case 2:
         a = int(sys.argv[1])
         b = None
+        r = None
         eError = eErrors.E_all_fine
     case 3:
         a = int(sys.argv[1])
         b = int(sys.argv[2])
+        r = None
         eError = eErrors.E_all_fine
     case 4:
         a = int(sys.argv[1])
@@ -147,7 +152,7 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     
                     status = 0
                     for i in range(0,n):
-                        data[0,0,i] = stats.sigma_clip(data[:,:],maxiters=None)
+                        data[:,:,i] = stats.sigma_clip(data[:,:,i],maxiters=None)
                         if 100*i//n == status*10:
                             print('Sigma filtering: ',status*10,'% done')
                             status += 1
@@ -449,17 +454,22 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     plt.grid()
                     text_temp = 'Horizontal cut'
                     plt.title(text_temp)                                     
-                    plt.show()
-                    eError=eErrors.E_end_programm   
+                    #plt.show()
+                    #eError=eErrors.E_end_programm   
 
                 case 12:
                     print('display')
-                    mean_raw = np.load('temp/mean_image_raw.npy')
-                    mean_bcg = np.load('temp/mean_image_bcg.npy')
-                    mean_dustfree = np.load('temp/mean_image_dustfree.npy')
-                    mean_image_Stracking = np.load('temp/mean_image_Stracking.npy')
-                    mean_lucky_Stracking = np.load('temp/mean_lucky_Stracking.npy')
-                    
+                    # mean_raw = np.load('temp/mean_image_raw.npy')
+                    # mean_bcg = np.load('temp/mean_image_bcg.npy')
+                    # mean_dustfree = np.load('temp/mean_image_dustfree.npy')
+                    # mean_image_Stracking = np.load('temp/mean_image_Stracking.npy')
+
+                    #data_roi = np.load('temp/data_roi.npy')
+                    #mean_lucky_Stracking = np.load('temp/mean_lucky_Stracking.npy')
+                    #plt.imsave('roi.jpg',data_roi[:,:,0])
+                    plt.imsave('mean_lucky_Stracking.jpg',mean_lucky_Stracking)
+
+
                     # plt.figure()
                     # plt.imshow(mean_raw)
                     # plt.title('Mean raw data')
