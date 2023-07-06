@@ -32,7 +32,7 @@ def eError_handling(code):
     5: Background removal\n\
     6: Noise cut (if implemented)\n\
     7: -\n\
-    8: Gausian oise filtering (if implemented)\n\
+    8: Gausian noise filtering (if implemented)\n\
     9: Dust shadow removal\n\
     10: tracking\n\
     11: Selection\n\
@@ -54,7 +54,7 @@ def readData(n, fname):
     status = 0
     for i in range(n):
         filename = fname+'{:03d}'.format(i+1)+'.fits'
-        if i==0:                    # Gets the pic size on firts pass
+        if i==0:                    # Gets the pic size on first pass
             [k, j] = fits.getdata(fname+'001.fits', ext=0).shape
             data = np.zeros((k,j,n))
         data[:,:,i] = fits.getdata(filename, ext=0)
@@ -62,9 +62,6 @@ def readData(n, fname):
         if 100*(i+1)//n == status*10:
             print('Reading data: ',status*10,'% done')
             status += 1
-    print('Saving intermediate data')
-    np.save('temp/data_raw',data, allow_pickle=True, fix_imports=True)
-    print('Done')
     return data
 
 
@@ -86,10 +83,7 @@ def ROI(n,data_in):
         print('Loading raw data')
         data_in = np.load('temp/data_raw.npy')
 
-    data = data_in[530-256:530+256,600-256:600+256,:]     # Manually done
-    print('Saving intermediate data')
-    np.save('temp/data_roi',data, allow_pickle=True, fix_imports=True)
-    print('Done')
+    data = data_in[430-256:430+256,600-256:600+256,:]     # Manually done
 
     return data
 

@@ -4,6 +4,7 @@
 #   - "python -m pip install numpy"
 #   - "python -m pip install matplotlib"
 #   - "python -m pip install from astropy"
+#   - "python -m pip install from scipy"
 # 
 #
 # Run from command line "python main.py arg1".
@@ -32,6 +33,8 @@ from customClasses import eErrors
 
 #----------------------Global variables----------
 global eError; eError = eErrors.E_all_fine
+global folder; folder = 'Attempt1'
+global filename; filename = '/Attempt1_'
 #global r; r = 0.2     # [%]
 #------------------------------------------------
 
@@ -78,20 +81,18 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
         st = time.time()
         # ------------------------------Variables------------------------------
         data = None
-        folder = 'Attempt2'
-        filename = '/Attempt2_'
         path = folder+filename
+        temp_path = folder+'/temp/'
         [k, j] = fits.getdata(path+'001.fits', ext=0).shape
 
         # -----------------------------count files-----------------------------
-        # folder path
-        dir_path = folder
+
         n = 0
 
         # Iterate directory
-        for path in os.listdir(dir_path):
+        for path in os.listdir(folder):
             # check if current path is a file
-            if os.path.isfile(os.path.join(dir_path, path)):
+            if os.path.isfile(os.path.join(folder, path)):
                 n += 1
 
         # ----------------------------------------------------------
@@ -111,7 +112,8 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     data = fnc.readData(n,path)
                     mean_image_raw = np.sum(data,2)/n
                     print('Saving intermediate data')
-                    np.save('temp/mean_image_raw',mean_image_raw, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'data_raw'
+                    np.save(temp_name,data, allow_pickle=True, fix_imports=True)
                     print('Done')  
                     eError=eErrors.E_end_programm
                 case 1:
@@ -119,7 +121,8 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     data = fnc.readData(n,path)
                     mean_image_raw = np.sum(data,2)/n
                     print('Saving intermediate data')
-                    np.save('temp/mean_image_raw',mean_image_raw, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'mean_image_raw'
+                    np.save(temp_name,mean_image_raw, allow_pickle=True, fix_imports=True)
                     print('Done')
                     # plt.figure()
                     # plt.imshow(data[:,:,0],cmap='gray',vmin=0,vmax=4095)
@@ -134,6 +137,13 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     print('ROI')
                     data = fnc.ROI(n,data)      # new variable because of region of interest
                     mean_image_roi = np.sum(data,2)/n
+
+                    print('Saving intermediate data')
+                    temp_name = temp_path+'data_roi'
+                    np.save(temp_name,data, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'mean_image_roi'
+                    np.save(temp_name,mean_image_roi, allow_pickle=True, fix_imports=True)
+                    print('Done')
                     # plt.figure()
                     # plt.imshow(data[:,:,0],cmap='gray',vmin=0,vmax=4095)
                     # plt.title('ROI image')
@@ -147,8 +157,9 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                 case 3:
                     print('Sigma filter')
                     if data is None:
+                        temp_name = temp_path+'data_roi.npy'
                         print('Loading ROI data')
-                        data = np.load('temp/data_roi.npy')
+                        data = np.load(temp_name)
                     
                     status = 0
                     for i in range(0,n):
@@ -156,7 +167,8 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                         if 100*i//n == status*10:
                             print('Sigma filtering: ',status*10,'% done')
                             status += 1
-                    np.save('temp/data_sigma',data, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'data_sigma'
+                    np.save(temp_name,data, allow_pickle=True, fix_imports=True)
                     print('Done')
                     mean_image_sigma = np.sum(data,2)/n
                     # plt.figure()
@@ -175,7 +187,8 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     print('Normalisation')
                     if data is None:
                         print('Loading sigma data')
-                        data = np.load('temp/data_sigma.npy')
+                        temp_name = temp_path+'data_sigma.npy'
+                        data = np.load(temp_name)
 
                     status = 0
                     for i in range(0,n):
@@ -185,7 +198,8 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                             status += 1
 
                     print('Saving intermediate data')
-                    np.save('temp/data_norm',data, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'data_norm'
+                    np.save(temp_name,data, allow_pickle=True, fix_imports=True)
                     print('Done')
                     mean_image_norm = np.sum(data,2)/n
 
@@ -193,8 +207,9 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                 case 5:
                     print("Background")
                     if data is None:
-                        print('loading sigma data')
-                        data = np.load('temp/data_sigma.npy')
+                        print('loading norm data')
+                        temp_name = temp_path+'data_norm.npy'
+                        data = np.load(temp_name)
                         
                     mask_radius = 150  # Rayon du cercle à exclure
                     
@@ -224,16 +239,21 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                             status += 1
 
                     print('Saving intermediate data')
-                    np.save('temp/data_mask',mask, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'data_mask'
+                    np.save(temp_name,mask, allow_pickle=True, fix_imports=True)
                     del mask
-                    np.save('temp/data_model',model, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'data_model'
+                    np.save(temp_name,model, allow_pickle=True, fix_imports=True)
                     del model
-                    np.save('temp/data_bcg',data, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'data_bcg'
+                    np.save(temp_name,data, allow_pickle=True, fix_imports=True)
                     print('Done')
 
                     mean_image_bcg = np.sum(data,2)/n 
-                    np.save('temp/mean_image_bcg',mean_image_bcg, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'mean_image_bcg'
+                    np.save(temp_name,mean_image_bcg, allow_pickle=True, fix_imports=True)
                     print('Done')
+
                     # plt.figure()
                     # plt.imshow(data[:,:,0])
                     # plt.title('Bcg removed image')
@@ -247,7 +267,8 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     print('Noise cut')
                     # if data is None:
                     #     print('Loading bcg data')
-                    #     data = np.load('temp/data_sigma.npy')
+                    #     temp_name = temp_path+'data_bcg.npy'
+                    #     data = np.load(temp_name)
                     #     k, j, n = data.shape
                     #     data = np.zeros((k,j,n))
                     # data[:,:,0] = fnc.noise_cut(data[:,:,0])
@@ -263,7 +284,8 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     # print('Noise filtering')
                     # if data is None:
                     #     print('Loading some data')
-                    #     data = np.load('temp/data_bcg.npy')
+                    #     temp_name = temp_path+'data_bcg.npy'
+                    #     data = np.load(temp_name)
                     #     k, j, n = data.shape
 
                     # unfiltered = data[:,:,0]
@@ -289,7 +311,8 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     status = 0;
                     if data is None:
                         print('Loading filtered data')
-                        data = np.load('temp/data_bcg.npy')
+                        temp_name = temp_path+'data_bcg.npy'
+                        data = np.load(temp_name)
 
                     try: mean_image_bcg
                     except NameError: mean_image_bcg = np.load('temp/mean_image_bcg.npy')
@@ -309,10 +332,12 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                             status += 1
                     
                     print('Saving intermediate data')
-                    np.save('temp/data_dustfree',data, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'data_dustfree'
+                    np.save(temp_name,data, allow_pickle=True, fix_imports=True)
 
                     mean_image_dustfree = np.sum(data,2)/n 
-                    np.save('temp/mean_image_dustfree',mean_image_dustfree, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'mean_image_dustfree'
+                    np.save(temp_name,mean_image_dustfree, allow_pickle=True, fix_imports=True)
                     print('Done')
 
                     # plt.figure()
@@ -324,7 +349,8 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     print('tracking')  
                     if data is None:
                         print('Loading shadowless data')
-                        data = np.load('temp/data_dustfree.npy') 
+                        temp_name = temp_path+'data_dustfree.npy'
+                        data = np.load(temp_name) 
                     status = 0
 
                     for i in range(n):
@@ -339,10 +365,12 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                             status += 1
 
                     print('Saving intermediate data')
-                    np.save('temp/data_Stracked',data, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'data_Stracked'
+                    np.save(temp_name,data, allow_pickle=True, fix_imports=True)
 
                     mean_image_Stracking = np.sum(data,2)/n
-                    np.save('temp/mean_image_Stracking',mean_image_Stracking, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'mean_image_Stracking'
+                    np.save(temp_name,mean_image_Stracking, allow_pickle=True, fix_imports=True)
                     print('Done')
                     # plt.figure()
                     # plt.imshow(mean_image_Stracking)
@@ -373,13 +401,15 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
 
                     # Select only the best
                     data_best  = data[:,:,selected_indices]
+                    del data
 
                     print('Saving intermediate data')
-                    del data
-                    np.save('temp/data_best',data_best, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'data_best'
+                    np.save(temp_name,data_best, allow_pickle=True, fix_imports=True)
 
                     mean_lucky_Stracking = np.sum(data_best,2)/n
-                    np.save('temp/mean_lucky_Stracking',mean_lucky_Stracking, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'mean_lucky_Stracking'
+                    np.save(temp_name,mean_lucky_Stracking, allow_pickle=True, fix_imports=True)
 
                     print('Done')
                     
