@@ -238,7 +238,7 @@ def noise_cut(data, threshold=None):
     
     return data.astype(np.double)
 
-def noise_filter(data,sigma=None):
+def noise_filter(data,sigma):
     '''------------------------------------------------------------------------------------
         noise_filtering(data, sigma=1)
         gaussin noise filtering
@@ -253,36 +253,28 @@ def noise_filter(data,sigma=None):
         to do:
         ------------------------------------------------------------------------------------'''
 
-    if sigma is None:
-        print('Input image Std for gaussian noise filtering')
-    else:
-        height, width = data.shape
+    height, width = data.shape
 
-        index_x = np.linspace(-1,1,width)
-        index_y = np.linspace(-1,1,height)
+    index_x = np.linspace(-1,1,width)
+    index_y = np.linspace(-1,1,height)
 
-        Mx = np.zeros((height,width))
-        My = np.zeros((height,width))
-        for i in range(height):
-            Mx[:,i] = index_x
-        for i in range(width):    
-            My[i,:] = index_y
+    Mx = np.zeros((height,width))
+    My = np.zeros((height,width))
+    for i in range(height):
+        Mx[:,i] = index_x
+    for i in range(width):    
+        My[i,:] = index_y
 
-        # Perform Fourier transform
-        data_tf = np.fft.fftshift(np.fft.fft2(data))
-        
-        # Apply filter in Fourier domain
 
-        
-        G = (1/(2*np.pi*sigma)**0.5)*np.exp((Mx**2+My**2)/(2*sigma**2))
-
-        data_tf_filtered = data_tf*G
+    data_tf_filtered = np.fft.fftshift(np.fft.fft2(data))*(1/(2*np.pi*sigma)**0.5)*np.exp(((Mx**2+My**2)/(sigma)**2))
         
         # Inverse Fourier transform
-        data = np.fft.ifft2(np.fft.ifftshift(data_tf_filtered)).real
+    data = np.fft.ifft2(np.fft.ifftshift(data_tf_filtered)).real
 
 
     return data.astype(np.double)
+
+
 
 def image_dusting(data,model, NdustSpots=1):
     '''------------------------------------------------------------------------------------
@@ -318,4 +310,3 @@ def image_dusting(data,model, NdustSpots=1):
         data[:,:] = bigger[spot_model_radius:height+spot_model_radius,spot_model_radius:width+spot_model_radius]
 
     return data
-

@@ -280,30 +280,31 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                 case 7:
                     a    
                 case 8:
-                    a
-                    # print('Noise filtering')
-                    # if data is None:
-                    #     print('Loading some data')
-                    #     temp_name = temp_path+'data_bcg.npy'
-                    #     data = np.load(temp_name)
-                    #     k, j, n = data.shape
+                    print('Noise filtering')
+                    if data is None:
+                        print('Loading filtered data')
+                        temp_name = temp_path+'data_bcg.npy'
+                        data = np.load(temp_name)
+                        k, j, n = data.shape
 
-                    # unfiltered = data[:,:,0]
-                    # plt.figure()
-                    # plt.imshow(unfiltered,cmap='gray')
-                    # text_temp = 'Unfiltered'
-                    # plt.title(text_temp)
+                    unfiltered = data[:,:,0]
+                    plt.figure()
+                    plt.imshow(unfiltered,cmap='gray')
+                    text_temp = 'Unfiltered'
+                    plt.title(text_temp)
 
-                    # for i in range(0,n):
-                    #     data[:,:,0] = fnc.noise_filter(data[:,:,0],1)
-                    # print('Saving intermediate data')
-                    # np.save('temp/data_filtered',data, allow_pickle=True, fix_imports=True)
-                    # print('Done')
-                    # plt.figure()
-                    # plt.imshow(data[:,:,0],cmap='gray')
-                    # text_temp = 'Noise filtered'
-                    # plt.title(text_temp)
-                    # plt.show()
+                    for i in range(0,n):
+                        data[:,:,i] = fnc.noise_filter(data[:,:,i],0.2)
+                    print('Saving intermediate data')
+                    temp_name = temp_path+'data_filtered'
+                    np.save(temp_name,data, allow_pickle=True, fix_imports=True)
+                    print('Done')
+                    plt.figure()
+                    plt.imshow(data[:,:,0],cmap='gray')
+                    text_temp = 'Noise filtered'
+                    plt.title(text_temp)
+                    plt.show()
+                    eError = eErrors.E_end_programm
                 case 9:
                     print('Dust spots')
                     NdustSpots = 4
@@ -311,7 +312,7 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     status = 0;
                     if data is None:
                         print('Loading filtered data')
-                        temp_name = temp_path+'data_bcg.npy'
+                        temp_name = temp_path+'data_filtered.npy'
                         data = np.load(temp_name)
 
                     try: mean_image_bcg
