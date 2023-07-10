@@ -135,25 +135,32 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     #plt.show()
                 case 2:
                     print('ROI')
-                    data = fnc.ROI(n,data)      # new variable because of region of interest
+                    if data is None:
+                        print('Loading raw data')
+                        temp_name = temp_path+'data_raw.npy'
+                        data = np.load(temp_name)
+
+
+                    data = fnc.ROI(data)
                     mean_image_roi = np.sum(data,2)/n
 
                     print('Saving intermediate data')
                     temp_name = temp_path+'data_roi'
                     np.save(temp_name,data, allow_pickle=True, fix_imports=True)
-                    temp_name = temp_path+'mean_image_roi'
-                    np.save(temp_name,mean_image_roi, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'mean_image_roi.fits'
+                    hdu = fits.PrimaryHDU(mean_image_roi)
+                    hdu.writeto(temp_name,overwrite=True)
                     print('Done')
                     # plt.figure()
                     # plt.imshow(data[:,:,0],cmap='gray',vmin=0,vmax=4095)
                     # plt.title('ROI image')
 
                     # plt.figure()
-                    # plt.imshow(mean_image_roi,cmap='gray')
+                    # plt.imshow(mean_image_roi)
                     # text_temp = 'ROI mean on {n:d} samples'
                     # plt.title(text_temp.format(n=n))
                     # plt.show()
-                    
+                    # eError = eErrors.E_end_programm
                 case 3:
                     print('Sigma filter')
                     if data is None:
@@ -171,6 +178,9 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     np.save(temp_name,data, allow_pickle=True, fix_imports=True)
                     print('Done')
                     mean_image_sigma = np.sum(data,2)/n
+                    temp_name = temp_path+'mean_image_sigma.fits'
+                    hdu = fits.PrimaryHDU(mean_image_sigma)
+                    hdu.writeto(temp_name,overwrite=True)
                     # plt.figure()
                     # plt.imshow(data[:,:,0],cmap='gray',vmin=0,vmax=4095)
                     # plt.title('Sigma image')
@@ -194,7 +204,7 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     for i in range(0,n):
                         data[:,:,i] = fnc.normalise(data[:,:,i],12)
                         if 100*i//n == status*10:
-                            print('Sigma filtering: ',status*10,'% done')
+                            print('Normalisation: ',status*10,'% done')
                             status += 1
 
                     print('Saving intermediate data')
@@ -226,10 +236,22 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     mask = np.zeros((data.shape))  # Remove if using mask and model at the same time as data takes too much
                     model = np.zeros(data.shape)
 
+                    # -----------    Build grids
+                    height, width = mask[:,:,0].shape
+                    x = np.linspace(0, width-1, width).astype(np.uint16)
+                    y = np.linspace(0, height-1, height).astype(np.uint16)
+                    grid_x_INT, grid_y_INT = np.meshgrid(x, y)
+
+                    x = np.linspace(-1,1,width)
+                    y = np.linspace(-1,1,height)
+                    grid_x, grid_y = np.meshgrid(x, y)
+                    # -----------    Build grids
+
+
                     status = 0
                     for i in range(0,n):
-                        mask[:,:,i] = fnc.buid_mask(data[:,:,0],mask_radius,speckles[:,i])
-                        model[:,:,i] = fnc.polynomial_mask(data[:,:,i],mask[:,:,i],4)
+                        mask[:,:,i] = fnc.buid_mask(data[:,:,0],mask_radius,[grid_x_INT, grid_y_INT],speckles[:,i])
+                        model[:,:,i] = fnc.polynomial_mask(data[:,:,i],mask[:,:,i],[grid_x, grid_y],4)
                         data[:,:,i] = data[:,:,i] - model[:,:,i]
                         #mask = fnc.buid_mask(data[:,:,0],mask_radius)
                         #model = fnc.polynomial_mask(data[:,:,i],mask,4)
@@ -250,8 +272,9 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     print('Done')
 
                     mean_image_bcg = np.sum(data,2)/n 
-                    temp_name = temp_path+'mean_image_bcg'
-                    np.save(temp_name,mean_image_bcg, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'mean_image_bcg.fits'
+                    hdu = fits.PrimaryHDU(mean_image_bcg)
+                    hdu.writeto(temp_name,overwrite=True)
                     print('Done')
 
                     # plt.figure()
@@ -285,29 +308,40 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                         print('Loading filtered data')
                         temp_name = temp_path+'data_bcg.npy'
                         data = np.load(temp_name)
-                        k, j, n = data.shape
+                        height, width, n = data.shape
+                        x = np.linspace(-1,1,height)
+                        y = np.linspace(-1,1,width)
+                        grid_x, grid_y = np.meshgrid(x, y)
 
-                    unfiltered = data[:,:,0]
-                    plt.figure()
-                    plt.imshow(unfiltered,cmap='gray')
-                    text_temp = 'Unfiltered'
-                    plt.title(text_temp)
+                    # plt.figure()
+                    # plt.imshow(unfiltered)
+                    # text_temp = 'Unfiltered'
+                    # plt.title(text_temp)
 
+                    status = 0
                     for i in range(0,n):
-                        data[:,:,i] = fnc.noise_filter(data[:,:,i],0.2)
+                        data[:,:,i] = fnc.noise_filter(data[:,:,i],0.2,[grid_x, grid_y])
+                        if 100*i//n == status*10:
+                            print('Noise filtering: ',status*10,'% done')
+                            status += 1
                     print('Saving intermediate data')
                     temp_name = temp_path+'data_filtered'
                     np.save(temp_name,data, allow_pickle=True, fix_imports=True)
+
+                    mean_image_filtered = np.sum(data,2)/n 
+                    temp_name = temp_path+'mean_image_filtered.fits'
+                    hdu = fits.PrimaryHDU(mean_image_filtered)
+                    hdu.writeto(temp_name,overwrite=True)
                     print('Done')
-                    plt.figure()
-                    plt.imshow(data[:,:,0],cmap='gray')
-                    text_temp = 'Noise filtered'
-                    plt.title(text_temp)
-                    plt.show()
-                    eError = eErrors.E_end_programm
+                    # plt.figure()
+                    # plt.imshow(data[:,:,0],)
+                    # text_temp = 'Noise filtered'
+                    # plt.title(text_temp)
+                    # plt.show()
+                    # eError = eErrors.E_end_programm
                 case 9:
                     print('Dust spots')
-                    NdustSpots = 4
+                    NdustSpots = 7
                     spot_model_radius = 25  
                     status = 0;
                     if data is None:
@@ -337,8 +371,9 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     np.save(temp_name,data, allow_pickle=True, fix_imports=True)
 
                     mean_image_dustfree = np.sum(data,2)/n 
-                    temp_name = temp_path+'mean_image_dustfree'
-                    np.save(temp_name,mean_image_dustfree, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'mean_image_dustfree.fits'
+                    hdu = fits.PrimaryHDU(mean_image_dustfree)
+                    hdu.writeto(temp_name,overwrite=True)
                     print('Done')
 
                     # plt.figure()
@@ -370,8 +405,9 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     np.save(temp_name,data, allow_pickle=True, fix_imports=True)
 
                     mean_image_Stracking = np.sum(data,2)/n
-                    temp_name = temp_path+'mean_image_Stracking'
-                    np.save(temp_name,mean_image_Stracking, allow_pickle=True, fix_imports=True)
+                    temp_name = temp_path+'mean_image_Stracking.fits'
+                    hdu = fits.PrimaryHDU(mean_image_Stracking)
+                    hdu.writeto(temp_name,overwrite=True)
                     print('Done')
                     # plt.figure()
                     # plt.imshow(mean_image_Stracking)
@@ -383,7 +419,8 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     print('Selection')
                     if data is None:
                         print('Loading Stracked data')
-                        data = np.load('temp/data_Stracked.npy') 
+                        temp_name = temp_path+'data_Stracked.npy'
+                        data = np.load(temp_name) 
 
                     #r = 0.2 # [%] # now a global variable
                     text_temp = 'Selecting the {r:.2f}% best frames'
@@ -394,31 +431,26 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     for i in range(0,n):
                         max_pixel_light[i] = np.amax(data[:,:,i])
                     order = np.argsort(max_pixel_light)
+                    print(order)
 
-                    # sort Luminosity  the info 
+                    # sort by Luminosity  in the brightest pixel 
                     n_needed = r*n
                     n_needed = int(-(-n_needed//1))   # Ceil without math module. We need a finite number of frame
                     selected_indices = order[n-n_needed:n]
-
+                    print(selected_indices)
+                    
                     # Select only the best
                     data_best  = data[:,:,selected_indices]
                     del data
 
-                    print('Saving intermediate data')
-                    temp_name = temp_path+'data_best'
-                    np.save(temp_name,data_best, allow_pickle=True, fix_imports=True)
-
                     mean_lucky_Stracking = np.sum(data_best,2)/n
-                    temp_name = temp_path+'mean_lucky_Stracking'
-                    np.save(temp_name,mean_lucky_Stracking, allow_pickle=True, fix_imports=True)
-
-                    print('Done')
                     
-                    et = time.time()
-                    # get the execution time
-                    elapsed_time = et - st
-                    print('Execution time:', elapsed_time, 'seconds')
 
+                    print('saving intermediate data')
+                    hdu = fits.PrimaryHDU(mean_lucky_Stracking)
+                    hdu.writeto('Attempt1/temp/mean_lucky_Stracking.fits',overwrite=True)
+                    print('done')
+                  
                     plt.figure()
                     plt.imshow(mean_lucky_Stracking)
                     text_temp = 'Mean {r:.2f}% speckle tracked frames'
@@ -459,11 +491,14 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
 
 
                     mean_lucky_Stracking_rot = ndimage.rotate(mean_lucky_Stracking, 35,reshape=False)
-                  
+
 
 
                     mean_lucky_Stracking_rot_norm = fnc.normalise(mean_lucky_Stracking_rot,0)
-                    mean_lucky_Stracking_rot_norm = fnc.normalise(mean_lucky_Stracking_rot_norm,0)
+                    #mean_lucky_Stracking_rot_norm = fnc.normalise(mean_lucky_Stracking_rot_norm,0)
+
+                    hdu = fits.PrimaryHDU(mean_lucky_Stracking_rot_norm)
+                    hdu.writeto('Attempt1/temp/mean_lucky_Stracking_rot_norm.fits',overwrite=True)
 
                     plt.figure()
                     plt.imshow(mean_lucky_Stracking_rot_norm)
@@ -488,6 +523,12 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     #plt.show()
                     #eError=eErrors.E_end_programm   
 
+                    et = time.time()
+                    # get the execution time
+                    elapsed_time = et - st
+                    print('Execution time:', elapsed_time, 'seconds')
+                    
+
                 case 12:
                     print('display')
                     # mean_raw = np.load('temp/mean_image_raw.npy')
@@ -498,7 +539,6 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     #data_roi = np.load('temp/data_roi.npy')
                     #mean_lucky_Stracking = np.load('temp/mean_lucky_Stracking.npy')
                     #plt.imsave('roi.jpg',data_roi[:,:,0])
-                    plt.imsave('mean_lucky_Stracking.jpg',mean_lucky_Stracking)
 
 
                     # plt.figure()

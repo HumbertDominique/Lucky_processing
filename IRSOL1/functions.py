@@ -66,24 +66,20 @@ def readData(n, fname):
 
 
 
-def ROI(n,data_in):
+def ROI(data_in):
     '''------------------------------------------------------------------------------------
     # ROI(n, data)
 
     Applies a 2-D region of interest do a 3-D array 
 
     ## in:
-        n: number of images
-        data: data: 3D array with pixel data
-        bit_depth: 2^bits resolution (1<=bits<=16)
+        data: 3D array with pixel data
     ## out:
         data: 3D array with pixel data
     ------------------------------------------------------------------------------------'''
-    if data_in is None:
-        print('Loading raw data')
-        data_in = np.load('temp/data_raw.npy')
 
-    data = data_in[430-256:430+256,600-256:600+256,:]     # Manually done
+    data = data_in[436-295:436+295,674-295:674+295,:]     # Manually done
+
 
     return data
 
@@ -114,7 +110,7 @@ def normalise(data, bits_depth = 12,):
     return data
 
 
-def buid_mask(data,radius,center=[None,None]):
+def buid_mask(data,radius,grid,center=[None,None]):
     '''#------------------------------------------------------------------------------------
         buid_maks(data,center=None)
 
@@ -128,25 +124,20 @@ def buid_mask(data,radius,center=[None,None]):
         ------------------------------------------------------------------------------------
     '''
 
-    height,width = data.shape
-
     if not (center[0] and center[1]):
         center = np.zeros((2))
+        height, width = data.shape
         center[0] = height // 2  # x
         center[1] = width // 2 # x
-
-    x = np.linspace(0, width-1, width).astype(np.uint16)
-    y = np.linspace(0, height-1, height).astype(np.uint16)
-    grid_x, grid_y = np.meshgrid(x, y)
                 
-    distance_from_center = np.sqrt((grid_x - center[0])**2 + (grid_y - center[1])**2)
+    distance_from_center = np.sqrt((grid[0]- center[0])**2 + (grid[1] - center[1])**2)
     # Créer le masque pour exclure les pixels à l'intérieur du cercle
     mask = distance_from_center <= radius
     return mask
 
 
 
-def polynomial_mask(data, mask,order=4):
+def polynomial_mask(data, mask, grid,order=4):
     '''------------------------------------------------------------------------------------
         polynomial_mask(data, mask_radius,order=4)
         according to "Analyse de données"
@@ -167,31 +158,21 @@ def polynomial_mask(data, mask,order=4):
     mask_dbl[mask==False] = 1.   # met des 1. là ou le masque n'est pas présent
     height, width = data.shape
     model = np.zeros(mask.shape)
-
-    index_x = np.linspace(-1,1,width)
-    index_y = np.linspace(-1,1,height)
-
     basis = np.zeros((height,width,nmodes))
 
-    Mx = np.zeros((height,width))
-    My = np.zeros((height,width))
-    for i in range(width):
-        Mx[:,i] = index_x
-    for i in range(height):    
-        My[i,:] = index_y
- 
+
     j_mode = -1
     for i in range(order+1):
         for j in range(i+1):
             j_mode +=1
-            basis[:,:,j_mode] =Mx**(i-j)*My**j
+            basis[:,:,j_mode] =grid[0]**(i-j)*grid[1]**j
     A = np.zeros((nmodes,nmodes)).astype(np.double)
 
     for i in range(0,nmodes):
         for j in range(0,i+1): 
             A[i,j] = np.sum(basis[:,:,i]*basis[:,:,j]*mask_dbl)
-            #A[j,i] = A[i,j]
-            #A=A.T
+            # A[j,i] = A[i,j]
+            # A=A.T
             #print(i,j)
 
     b = np.zeros(nmodes)
@@ -238,7 +219,7 @@ def noise_cut(data, threshold=None):
     
     return data.astype(np.double)
 
-def noise_filter(data,sigma):
+def noise_filter(data,sigma, grid):
     '''------------------------------------------------------------------------------------
         noise_filtering(data, sigma=1)
         gaussin noise filtering
@@ -253,20 +234,7 @@ def noise_filter(data,sigma):
         to do:
         ------------------------------------------------------------------------------------'''
 
-    height, width = data.shape
-
-    index_x = np.linspace(-1,1,width)
-    index_y = np.linspace(-1,1,height)
-
-    Mx = np.zeros((height,width))
-    My = np.zeros((height,width))
-    for i in range(height):
-        Mx[:,i] = index_x
-    for i in range(width):    
-        My[i,:] = index_y
-
-
-    data_tf_filtered = np.fft.fftshift(np.fft.fft2(data))*(1/(2*np.pi*sigma)**0.5)*np.exp(((Mx**2+My**2)/(sigma)**2))
+    data_tf_filtered = np.fft.fftshift(np.fft.fft2(data))*np.exp(-(((grid[0]**2+grid[1]**2)/(sigma))**2))
         
         # Inverse Fourier transform
     data = np.fft.ifft2(np.fft.ifftshift(data_tf_filtered)).real
