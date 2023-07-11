@@ -22,7 +22,7 @@ import functions as fnc
 import numpy as np
 from matplotlib.ticker import LinearLocator
 from scipy import ndimage
-from PIL import Image
+
 
 
 import os
@@ -35,7 +35,6 @@ from customClasses import eErrors
 global eError; eError = eErrors.E_all_fine
 global folder; folder = 'Attempt1'
 global filename; filename = '/Attempt1_'
-#global r; r = 0.2     # [%]
 #------------------------------------------------
 
 k = len(sys.argv)
@@ -65,7 +64,7 @@ match k:
         a=0
 
 
-def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
+def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
     '''------------------------------------------------------------------------------------
     # main(a, b, eError=eErrors.E_arg_error)
     Processes lucky imaging frames
@@ -96,10 +95,10 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                 n += 1
 
         # ----------------------------------------------------------
-        if b is None:       # qty of frames to use
-            b = 20
-        else:
-            n = b
+        # if b is None:       # qty of frames to use
+            # b = 20
+        # else:
+            # n = b
         # ----------------------------------------------------------
 
         path = folder+filename
