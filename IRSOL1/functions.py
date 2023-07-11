@@ -37,7 +37,8 @@ def eError_handling(code):
     10: tracking\n\
     11: Selection\n\
     12: plots")
-            print("arg2 = fraction of frames to use (ie. 0.2)")
+            print("arg2 = qty of frames to use")
+            print("arg3 = fraction of frames to stack (ie. 0.2)")
             print("--------------------------")
 
 
@@ -149,10 +150,11 @@ def polynomial_mask(data, mask, grid,order=4):
         
         out: 
           approximated image
+          error flag
          
         to do:
         ------------------------------------------------------------------------------------'''
-
+    error_flag = False
     nmodes = int(((order+1)**2-(order+1))/2+(order+1))
     mask_dbl = np.zeros(mask.shape)
     mask_dbl[mask==False] = 1.   # met des 1. là ou le masque n'est pas présent
@@ -179,12 +181,17 @@ def polynomial_mask(data, mask, grid,order=4):
     for i in range(nmodes):
          b[i]=np.sum(data*basis[:,:,i]*mask_dbl)
 
-    a = np.dot(np.linalg.inv(A),b)
-    model = np.zeros((height,width))
-    for i in range(0,nmodes):
-        model += a[i]*basis[:,:,i] 
-    
-    return model
+    try:
+        a = np.dot(np.linalg.inv(A),b)
+    except np.linalg.LinAlgError:
+        error_flag = True
+
+    if not error_flag:
+        model = np.zeros((height,width))
+        for i in range(0,nmodes):
+            model += a[i]*basis[:,:,i] 
+
+    return model, error_flag
 
 
 def noise_cut(data, threshold=None):

@@ -251,11 +251,12 @@ def lucky_process(a, b, r=0.2, eError=eErrors.E_arg_error):
                     status = 0
                     for i in range(0,n):
                         mask[:,:,i] = fnc.buid_mask(data[:,:,0],mask_radius,[grid_x_INT, grid_y_INT],speckles[:,i])
-                        model[:,:,i] = fnc.polynomial_mask(data[:,:,i],mask[:,:,i],[grid_x, grid_y],4)
-                        data[:,:,i] = data[:,:,i] - model[:,:,i]
-                        #mask = fnc.buid_mask(data[:,:,0],mask_radius)
-                        #model = fnc.polynomial_mask(data[:,:,i],mask,4)
-                        #data[:,:,i] = data[:,:,i] - model
+                        model[:,:,i], poly_error_flag = fnc.polynomial_mask(data[:,:,i],mask[:,:,i],[grid_x, grid_y],4)
+                        if poly_error_flag:
+                            data[:,:,i] -= data[:,:,i]            # if the model could not be build, the data is set to 0. thus not beeing used 
+                        else:
+                            data[:,:,i] = data[:,:,i] - model[:,:,i]
+
                         if 100*i//n == status*10:
                             print('background removal: ',status*10,'% done')
                             status += 1
