@@ -39,6 +39,7 @@ def eError_handling(code):
     12: plots")
             print("arg2 = qty of frames to use")
             print("arg3 = fraction of frames to stack (ie. 0.2)")
+            print("arg4 = error code. insert 0 to run the function directly")
             print("--------------------------")
 
 
@@ -85,7 +86,7 @@ def ROI(data_in):
     return data
 
 
-def normalise(data, bits_depth = 12,):
+def normalise(data, bits_depth = 12):
     '''------------------------------------------------------------------------------------
     # normalize(data,bits_depth)
 
@@ -102,16 +103,17 @@ def normalise(data, bits_depth = 12,):
     if bits_depth<0 or bits_depth>16:
         bits = 12
         #print('Normalising images in ',bits,'bits')
-        data[:,:] = (data[:,:] - np.min(data[:,:])) / (np.max(data[:,:]) - np.min(data[:,:]))
-        data[:,:] = (data[:,:] * 2**bits).astype(np.uint16)
-
-    if bits_depth == 0:
-        data[:,:] = ((data[:,:] - np.min(data[:,:])) / (np.max(data[:,:]) - np.min(data[:,:]))).astype(np.double)  
+        if bits_depth == 0:
+            data[:,:] = ((data[:,:] - np.min(data[:,:])) / (np.max(data[:,:]) - np.min(data[:,:]))).astype(np.double)  
+        else:
+            data[:,:] = ((data[:,:] - np.min(data[:,:])) / (np.max(data[:,:]) - np.min(data[:,:]))).astype(np.double)  
+            data[:,:] = (data[:,:] - np.min(data[:,:])) / (np.max(data[:,:]) - np.min(data[:,:]))
+            data[:,:] = (data[:,:] * 2**bits).astype(np.uint16)
 
     return data
 
 
-def buid_mask(data,radius,grid,center=[None,None]):
+def buid_mask(data, radius, grid, center=[None,None]):
     '''#------------------------------------------------------------------------------------
         buid_maks(data,center=None)
 
@@ -138,7 +140,7 @@ def buid_mask(data,radius,grid,center=[None,None]):
 
 
 
-def polynomial_mask(data, mask, grid,order=4):
+def polynomial_mask(data, mask, grid, order=4):
     '''------------------------------------------------------------------------------------
         polynomial_mask(data, mask_radius,order=4)
         according to "Analyse de données"
@@ -173,9 +175,6 @@ def polynomial_mask(data, mask, grid,order=4):
     for i in range(0,nmodes):
         for j in range(0,i+1): 
             A[i,j] = np.sum(basis[:,:,i]*basis[:,:,j]*mask_dbl)
-            # A[j,i] = A[i,j]
-            # A=A.T
-            #print(i,j)
 
     b = np.zeros(nmodes)
     for i in range(nmodes):
@@ -194,14 +193,14 @@ def polynomial_mask(data, mask, grid,order=4):
     return model, error_flag
 
 
-def noise_cut(data, threshold=None):
+def noise_cut(data, threshold):
     '''------------------------------------------------------------------------------------
         noise_cut(data, threshold=None)
         Noise cut filter
 
         in:
           data : image to interpolate from. square and dimmentions are ^2 (padding not implemented)
-          threshold : cutting thresholde
+          threshold : cutting threshold
         
         out: 
           approximated image
@@ -209,9 +208,6 @@ def noise_cut(data, threshold=None):
         to do:
             faire fonctionner
         ------------------------------------------------------------------------------------'''
-
-    if threshold is None:
-        threshold = 0.5*1                  # à définir avec Nyquist
 
     # Perform Fourier transform
     data_tf = np.fft.fftshift(np.fft.fft2(data))
@@ -226,7 +222,7 @@ def noise_cut(data, threshold=None):
     
     return data.astype(np.double)
 
-def noise_filter(data,sigma, grid):
+def noise_filter(data, sigma, grid, power = 2):
     '''------------------------------------------------------------------------------------
         noise_filtering(data, sigma=1)
         gaussin noise filtering
@@ -241,7 +237,7 @@ def noise_filter(data,sigma, grid):
         to do:
         ------------------------------------------------------------------------------------'''
 
-    data_tf_filtered = np.fft.fftshift(np.fft.fft2(data))*np.exp(-(((grid[0]**2+grid[1]**2)/(sigma))**2))
+    data_tf_filtered = np.fft.fftshift(np.fft.fft2(data))*np.exp(-(((grid[0]**2+grid[1]**2)/(sigma))**power))
         
         # Inverse Fourier transform
     data = np.fft.ifft2(np.fft.ifftshift(data_tf_filtered)).real
@@ -251,7 +247,7 @@ def noise_filter(data,sigma, grid):
 
 
 
-def image_dusting(data,model, NdustSpots=1):
+def image_dusting(data, model, NdustSpots=1):
     '''------------------------------------------------------------------------------------
         image_dusting(data, sigma=1)
         gaussin noise filtering

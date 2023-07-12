@@ -75,15 +75,14 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
     ## out:
       data: 3D array with pixel data
     ------------------------------------------------------------------------------------'''
-
     if (eError == eErrors.E_all_fine):
+        
         st = time.time()
         # ------------------------------Variables------------------------------
         data = None
         path = folder+filename
         temp_path = folder+'/temp/'
         [k, j] = fits.getdata(path+'001.fits', ext=0).shape
-
         # -----------------------------count files-----------------------------
 
         n = 0
@@ -102,13 +101,13 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
         # ----------------------------------------------------------
 
         path = folder+filename
-
+        
         # -------------------------------program--------------------------------
         while eError==eErrors.E_all_fine:
             match a:
                 case 0: # only read and save raw data
                     print('Read data')
-                    data = fnc.readData(n,path)
+                    data_raw = fnc.readData(n,path)
                     mean_image_raw = np.sum(data,2)/n
                     print('Saving intermediate data')
                     temp_name = temp_path+'data_raw'
@@ -239,7 +238,7 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
                     height, width = mask[:,:,0].shape
                     x = np.linspace(0, width-1, width).astype(np.uint16)
                     y = np.linspace(0, height-1, height).astype(np.uint16)
-                    grid_x_INT, grid_y_INT = np.meshgrid(x, y)
+                    grid_x_UINT, grid_y_UINT = np.meshgrid(x, y)
 
                     x = np.linspace(-1,1,width)
                     y = np.linspace(-1,1,height)
@@ -249,7 +248,7 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
 
                     status = 0
                     for i in range(0,n):
-                        mask[:,:,i] = fnc.buid_mask(data[:,:,0],mask_radius,[grid_x_INT, grid_y_INT],speckles[:,i])
+                        mask[:,:,i] = fnc.buid_mask(data[:,:,0],mask_radius,[grid_x_UINT],speckles[:,i])
                         model[:,:,i], poly_error_flag = fnc.polynomial_mask(data[:,:,i],mask[:,:,i],[grid_x, grid_y],4)
                         if poly_error_flag:
                             data[:,:,i] -= data[:,:,i]            # if the model could not be build, the data is set to 0. thus not beeing used 
@@ -431,7 +430,7 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
                     for i in range(0,n):
                         max_pixel_light[i] = np.amax(data[:,:,i])
                     order = np.argsort(max_pixel_light)
-                    print(order)
+                    #print(order)
 
                     # sort by Luminosity  in the brightest pixel 
                     n_needed = r*n
