@@ -248,7 +248,7 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
 
                     status = 0
                     for i in range(0,n):
-                        mask[:,:,i] = fnc.buid_mask(data[:,:,0],mask_radius,[grid_x_UINT],speckles[:,i])
+                        mask[:,:,i] = fnc.buid_mask(data[:,:,i],mask_radius,[grid_x_UINT, grid_y_UINT],speckles[:,i])
                         model[:,:,i], poly_error_flag = fnc.polynomial_mask(data[:,:,i],mask[:,:,i],[grid_x, grid_y],4)
                         if poly_error_flag:
                             data[:,:,i] -= data[:,:,i]            # if the model could not be build, the data is set to 0. thus not beeing used 
@@ -529,7 +529,7 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
                     
 
                 case 12:
-                    print('display')
+                    print('fmplay')
                     # mean_raw = np.load('temp/mean_image_raw.npy')
                     # mean_bcg = np.load('temp/mean_image_bcg.npy')
                     # mean_dustfree = np.load('temp/mean_image_dustfree.npy')
