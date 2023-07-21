@@ -33,8 +33,12 @@ from customClasses import eErrors
 
 #----------------------Global variables----------
 global eError; eError = eErrors.E_all_fine
-global folder; folder = 'Attempt1'
-global filename; filename = '/Attempt1_'
+global folder; folder = 'C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/07_aberation_disk'
+global filename; filename = '/AD_'
+global ROIx; ROIx = 478
+global ROIy; ROIy = 1042
+global ROIdx; ROIdx = 128
+global ROIdy; ROIdy = 128
 #------------------------------------------------
 
 k = len(sys.argv)
@@ -43,40 +47,51 @@ match k:
         a = 0
         b = 0
         r = None
+        synt_BCG = True
         eError = eErrors.E_arg_error
     case 2:
         a = int(sys.argv[1])
         b = None
         r = None
+        synt_BCG = False
         eError = eErrors.E_all_fine
     case 3:
         a = int(sys.argv[1])
         b = int(sys.argv[2])
         r = None
+        synt_BCG = False
         eError = eErrors.E_all_fine
     case 4:
         a = int(sys.argv[1])
         b = int(sys.argv[2])
         r = float(sys.argv[3])
+        synt_BCG = False
+        eError = eErrors.E_all_fine
+    case 5:
+        a = int(sys.argv[1])
+        b = int(sys.argv[2])
+        r = float(sys.argv[3])
+        synt_BCG = (sys.argv[4]=='True')
         eError = eErrors.E_all_fine
     case _:
+
         eError = eErrors.E_arg_error
         a=0
 
 
-def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
+def lucky_process(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_error):
     '''------------------------------------------------------------------------------------
     # main(a, b, eError=eErrors.E_arg_error)
     Processes lucky imaging frames
     ## in:
       a: number of images
-      b: 
-      c:
+      b: starting point
+      r: ratio to stack
     ## out:
-      data: 3D array with pixel data
+      -
     ------------------------------------------------------------------------------------'''
     if (eError == eErrors.E_all_fine):
-        
+
         st = time.time()
         # ------------------------------Variables------------------------------
         data = None
@@ -94,10 +109,10 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
                 n += 1
 
         # ----------------------------------------------------------
-        # if b is None:       # qty of frames to use
-            # b = 20
-        # else:
-            # n = b
+        if b is None:       # qty of frames to use
+            b = 20
+        else:
+            n = b
         # ----------------------------------------------------------
 
         path = folder+filename
@@ -107,7 +122,8 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
             match a:
                 case 0: # only read and save raw data
                     print('Read data')
-                    data_raw = fnc.readData(n,path)
+                    data = fnc.readData(n,path)
+
                     mean_image_raw = np.sum(data,2)/n
                     print('Saving intermediate data')
                     temp_name = temp_path+'data_raw'
@@ -123,14 +139,14 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
                     np.save(temp_name,mean_image_raw, allow_pickle=True, fix_imports=True)
                     print('Done')
                     # plt.figure()
-                    # plt.imshow(data[:,:,0],cmap='gray',vmin=0,vmax=4095)
+                    # plt.imshow(data[:,:,0],vmin=0,vmax=4095)
                     # plt.title('Raw image')
                     # plt.figure()
                     
                     # plt.imshow(mean_image_raw,cmap='gray',vmin=0,vmax=4095)
                     # text_temp = 'Raw mean on {n:d} samples'
                     # plt.title(text_temp.format(n=n))
-                    #plt.show()
+                    # plt.show()
                 case 2:
                     print('ROI')
                     if data is None:
@@ -139,7 +155,7 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
                         data = np.load(temp_name)
 
 
-                    data = fnc.ROI(data)
+                    data = data[ROIx-ROIdx:ROIx+ROIdx,ROIy-ROIdy:ROIy+ROIdy,:]
                     mean_image_roi = np.sum(data,2)/n
 
                     print('Saving intermediate data')
@@ -149,14 +165,15 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
                     hdu = fits.PrimaryHDU(mean_image_roi)
                     hdu.writeto(temp_name,overwrite=True)
                     print('Done')
-                    # plt.figure()
-                    # plt.imshow(data[:,:,0],cmap='gray',vmin=0,vmax=4095)
-                    # plt.title('ROI image')
 
                     # plt.figure()
-                    # plt.imshow(mean_image_roi)
-                    # text_temp = 'ROI mean on {n:d} samples'
-                    # plt.title(text_temp.format(n=n))
+                    # plt.imshow(data[:,:,0],vmin=0,vmax=4095)
+                    # plt.title('ROI image')
+
+                    # # plt.figure()
+                    # # plt.imshow(mean_image_roi)
+                    # # text_temp = 'ROI mean on {n:d} samples'
+                    # # plt.title(text_temp.format(n=n))
                     # plt.show()
                     # eError = eErrors.E_end_programm
                 case 3:
@@ -210,82 +227,127 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
                     np.save(temp_name,data, allow_pickle=True, fix_imports=True)
                     print('Done')
                     mean_image_norm = np.sum(data,2)/n
+                    # plt.figure()
+                    # plt.imshow(data[:,:,0])
+                    # plt.show()
+
+                    # eError = eErrors.E_end_programm
 
                 
                 case 5:
-                    print("Background")
-                    if data is None:
-                        print('loading norm data')
-                        temp_name = temp_path+'data_norm.npy'
-                        data = np.load(temp_name)
+                    if synt_BCG:
+                        print("Background")
+                        if data is None:
+                            print('loading norm data')
+                            temp_name = temp_path+'data_norm.npy'
+                            data = np.load(temp_name)
+                        # plt.figure()
+                        # plt.imshow(data[:,:,0])
+                        # plt.title('Data')
+                        # plt.show()    
+                        mask_radius = 35  # Rayon du cercle à exclure
                         
-                    mask_radius = 150  # Rayon du cercle à exclure
-                    
-                    print("Speckles location")
-                    speckles = np.zeros((2,n))
-                    status = 0
-                    for i in range(n):
-                        speckles[:,i] = np.unravel_index(data[:,:,i].argmax(), data[:,:,i].shape)
-                        if 100*i//n == status*10:
-                            print('Locating brightest speckles: ',status*10,'% done')
-                            status += 1
+                        print("Speckles location")
+                        speckles = np.zeros((2,n))
+                        status = 0
+                        for i in range(n):
+                            speckles[:,i] = np.unravel_index(data[:,:,i].argmax(), data[:,:,i].shape)
+                            if 100*i//n == status*10:
+                                print('Locating brightest speckles: ',status*10,'% done')
+                                status += 1
 
 
-                    mask = np.zeros((data.shape))  # Remove if using mask and model at the same time as data takes too much
-                    model = np.zeros(data.shape)
+                        mask = np.zeros((data.shape))  # Remove if using mask and model at the same time as data takes too much
+                        model = np.zeros(data.shape)
 
-                    # -----------    Build grids
-                    height, width = mask[:,:,0].shape
-                    x = np.linspace(0, width-1, width).astype(np.uint16)
-                    y = np.linspace(0, height-1, height).astype(np.uint16)
-                    grid_x_UINT, grid_y_UINT = np.meshgrid(x, y)
+                        # -----------    Build grids
+                        height, width = mask[:,:,0].shape
+                        x = np.linspace(0, width-1, width).astype(np.uint16)
+                        y = np.linspace(0, height-1, height).astype(np.uint16)
+                        grid_x_UINT, grid_y_UINT = np.meshgrid(x, y)
 
-                    x = np.linspace(-1,1,width)
-                    y = np.linspace(-1,1,height)
-                    grid_x, grid_y = np.meshgrid(x, y)
-                    # -----------    Build grids
+                        x = np.linspace(-1,1,width)
+                        y = np.linspace(-1,1,height)
+                        grid_x, grid_y = np.meshgrid(x, y)
+                        # -----------    Build grids
 
 
-                    status = 0
-                    for i in range(0,n):
-                        mask[:,:,i] = fnc.buid_mask(data[:,:,i],mask_radius,[grid_x_UINT, grid_y_UINT],speckles[:,i])
-                        model[:,:,i], poly_error_flag = fnc.polynomial_mask(data[:,:,i],mask[:,:,i],[grid_x, grid_y],4)
-                        if poly_error_flag:
-                            data[:,:,i] -= data[:,:,i]            # if the model could not be build, the data is set to 0. thus not beeing used 
-                        else:
-                            data[:,:,i] = data[:,:,i] - model[:,:,i]
+                        status = 0
+                        for i in range(0,n):
+                            mask[:,:,i] = fnc.buid_mask(data[:,:,i],mask_radius,[grid_x_UINT, grid_y_UINT],speckles[:,i])
+                            model[:,:,i], poly_error_flag = fnc.polynomial_mask(data[:,:,i],mask[:,:,i],[grid_x, grid_y],4)
+                            if poly_error_flag:
+                                data[:,:,i] -= data[:,:,i]            # if the model could not be build, the data is set to 0. thus not beeing used 
+                            else:
+                                data[:,:,i] = data[:,:,i] - model[:,:,i]
 
-                        if 100*i//n == status*10:
-                            print('background removal: ',status*10,'% done')
-                            status += 1
+                            if 100*i//n == status*10:
+                                print('background removal: ',status*10,'% done')
+                                status += 1
 
-                    print('Saving intermediate data')
-                    temp_name = temp_path+'data_mask'
-                    np.save(temp_name,mask, allow_pickle=True, fix_imports=True)
-                    del mask
-                    temp_name = temp_path+'data_model'
-                    np.save(temp_name,model, allow_pickle=True, fix_imports=True)
-                    del model
-                    temp_name = temp_path+'data_bcg'
-                    np.save(temp_name,data, allow_pickle=True, fix_imports=True)
-                    print('Done')
+                        print('Saving intermediate data')
+                        temp_name = temp_path+'data_mask'
+                        np.save(temp_name,mask, allow_pickle=True, fix_imports=True)
+                        # plt.figure()
+                        # plt.imshow(mask[:,:,0])
+                        # plt.title('Mask')
+                        # plt.show()
+                        del mask
+                        temp_name = temp_path+'data_model'
+                        np.save(temp_name,model, allow_pickle=True, fix_imports=True)
+                        del model
+                        temp_name = temp_path+'data_bcg'
+                        np.save(temp_name,data, allow_pickle=True, fix_imports=True)
+                        print('Done')
 
-                    mean_image_bcg = np.sum(data,2)/n 
-                    temp_name = temp_path+'mean_image_bcg.fits'
-                    hdu = fits.PrimaryHDU(mean_image_bcg)
-                    hdu.writeto(temp_name,overwrite=True)
-                    print('Done')
+                        # status = 0
+                        # for i in range(0,n):
+                        #     data[:,:,i] = (data[:,:,i]-np.min(data[:,:,i]))/(np.max(data[:,:,i])-np.min(data[:,:,i]))
+                        #     if 100*i//n == status*10:
+                        #         print('Normalisation: ',status*10,'% done')
+                        #         status += 1
+                        status = 0
+                        for i in range(0,n):
+                            data[:,:,i] = fnc.normalise(data[:,:,i],12)
+                            print(np.min(data[:,:,i]))
+                            if 100*i//n == status*10:
+                                print('Normalisation: ',status*10,'% done')
+                                status += 1
+                        
+                        mean_image_bcg = np.sum(data,2)/n 
+                        temp_name = temp_path+'mean_image_bcg.fits'
+                        hdu = fits.PrimaryHDU(mean_image_bcg)
+                        hdu.writeto(temp_name,overwrite=True)
+                        print('Done')
 
-                    # plt.figure()
-                    # plt.imshow(data[:,:,0])
-                    # plt.title('Bcg removed image')
-                    # plt.show()
-                    # plt.figure()
-                    # plt.imshow(mean_image_bcg,cmap='gray',vmin=0,vmax=4095)
-                    # text_temp = 'Bcg removed mean on {n:d} samples'
-                    # plt.title(text_temp.format(n=n))
-                    #plt.show()
+                        
+                        # plt.figure()
+                        # plt.imshow(mean_image_bcg,cmap='gray',vmin=0,vmax=4095)
+                        # text_temp = 'Bcg removed mean on {n:d} samples'
+                        # plt.title(text_temp.format(n=n))
+                        # plt.show()
+                        # eError = eErrors.E_end_programm
                 case 6:
+                     if not synt_BCG:
+                        print("Dark/flat removal")
+                        if data is None:
+                            print('loading norm data')
+                            temp_name = temp_path + 'data_norm.npy'
+                            data = np.load(temp_name)
+                            print('Done')
+                        print('loading Dark/flat frames')
+                        temp_name = folder + '/flat.fits'
+                        flat = fits.getdata(temp_name, ext=0)
+                        flat = flat[ROIx-ROIdx:ROIx+ROIdx,ROIy-ROIdy:ROIy+ROIdy]
+                        temp_name = folder + '/dark.fits'
+                        dark = fits.getdata(temp_name, ext=0)
+                        dark = dark[ROIx-ROIdx:ROIx+ROIdx,ROIy-ROIdy:ROIy+ROIdy]
+                        print('Done')
+
+                        for i in range(0,n):
+                            data[:,:,i] = (data[:,:,i]-dark)/flat
+                            data[:,:,i] = fnc.normalise(data[:,:,i], 12)
+                case 7: 
                     print('Noise cut')
                     # if data is None:
                     #     print('Loading bcg data')
@@ -299,27 +361,27 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
                     # text_temp = 'Noise cut'
                     # plt.title(text_temp)
                     #plt.show()
-                case 7:
-                    a    
+   
                 case 8:
                     print('Noise filtering')
                     if data is None:
                         print('Loading filtered data')
                         temp_name = temp_path+'data_bcg.npy'
                         data = np.load(temp_name)
-                        height, width, n = data.shape
-                        x = np.linspace(-1,1,height)
-                        y = np.linspace(-1,1,width)
-                        grid_x, grid_y = np.meshgrid(x, y)
+                        print('Done')
+                    height, width, n = data.shape
+                    x = np.linspace(-1,1,height)
+                    y = np.linspace(-1,1,width)
+                    grid_x, grid_y = np.meshgrid(x, y)
 
                     # plt.figure()
-                    # plt.imshow(unfiltered)
+                    # plt.imshow(data[:,:,0]**(1/8))
                     # text_temp = 'Unfiltered'
                     # plt.title(text_temp)
 
                     status = 0
                     for i in range(0,n):
-                        data[:,:,i] = fnc.noise_filter(data[:,:,i],0.2,[grid_x, grid_y])
+                        data[:,:,i] = fnc.noise_filter(data[:,:,i],0.2,[grid_x, grid_y],0)
                         if 100*i//n == status*10:
                             print('Noise filtering: ',status*10,'% done')
                             status += 1
@@ -333,47 +395,47 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
                     hdu.writeto(temp_name,overwrite=True)
                     print('Done')
                     # plt.figure()
-                    # plt.imshow(data[:,:,0],)
+                    # plt.imshow(data[:,:,0]**(1/1),)
                     # text_temp = 'Noise filtered'
                     # plt.title(text_temp)
                     # plt.show()
                     # eError = eErrors.E_end_programm
                 case 9:
                     print('Dust spots')
-                    NdustSpots = 7
-                    spot_model_radius = 25  
-                    status = 0;
-                    if data is None:
-                        print('Loading filtered data')
-                        temp_name = temp_path+'data_filtered.npy'
-                        data = np.load(temp_name)
+                    # NdustSpots = 7
+                    # spot_model_radius = 25  
+                    # status = 0;
+                    # if data is None:
+                    #     print('Loading filtered data')
+                    #     temp_name = temp_path+'data_filtered.npy'
+                    #     data = np.load(temp_name)
 
-                    try: mean_image_bcg
-                    except NameError: mean_image_bcg = np.load('temp/mean_image_bcg.npy')
-                    # plt.figure()
-                    # plt.imshow(mean_image_bcg)
-                    # text_temp = 'Shadows everywhere!!!'
-                    # plt.title(text_temp)
-                    # find a dust spot for the model
-                    index_model = np.unravel_index(mean_image_bcg[:,:].argmin(), mean_image_bcg[:,:].shape)
-                    dust_model = mean_image_bcg[index_model[0]-spot_model_radius:index_model[0]+spot_model_radius,index_model[1]-spot_model_radius:index_model[1]+spot_model_radius]
-                    dust_model /= np.min(dust_model)
+                    # try: mean_image_bcg
+                    # except NameError: mean_image_bcg = np.load('temp/mean_image_bcg.npy')
+                    # # plt.figure()
+                    # # plt.imshow(mean_image_bcg)
+                    # # text_temp = 'Shadows everywhere!!!'
+                    # # plt.title(text_temp)
+                    # # find a dust spot for the model
+                    # index_model = np.unravel_index(mean_image_bcg[:,:].argmin(), mean_image_bcg[:,:].shape)
+                    # dust_model = mean_image_bcg[index_model[0]-spot_model_radius:index_model[0]+spot_model_radius,index_model[1]-spot_model_radius:index_model[1]+spot_model_radius]
+                    # dust_model /= np.min(dust_model)
                     
-                    for i in range(0,n):
-                        data[:,:,i] = fnc.image_dusting(data[:,:,i],dust_model,4)
-                        if 100*i//n == status*10:
-                            print('Dust shadow removal: ',status*10,'% done')
-                            status += 1
+                    # for i in range(0,n):
+                    #     data[:,:,i] = fnc.image_dusting(data[:,:,i],dust_model,4)
+                    #     if 100*i//n == status*10:
+                    #         print('Dust shadow removal: ',status*10,'% done')
+                    #         status += 1
                     
-                    print('Saving intermediate data')
-                    temp_name = temp_path+'data_dustfree'
-                    np.save(temp_name,data, allow_pickle=True, fix_imports=True)
+                    # print('Saving intermediate data')
+                    # temp_name = temp_path+'data_dustfree'
+                    # np.save(temp_name,data, allow_pickle=True, fix_imports=True)
 
-                    mean_image_dustfree = np.sum(data,2)/n 
-                    temp_name = temp_path+'mean_image_dustfree.fits'
-                    hdu = fits.PrimaryHDU(mean_image_dustfree)
-                    hdu.writeto(temp_name,overwrite=True)
-                    print('Done')
+                    # mean_image_dustfree = np.sum(data,2)/n 
+                    # temp_name = temp_path+'mean_image_dustfree.fits'
+                    # hdu = fits.PrimaryHDU(mean_image_dustfree)
+                    # hdu.writeto(temp_name,overwrite=True)
+                    # print('Done')
 
                     # plt.figure()
                     # plt.imshow(mean_image_dustfree)
@@ -436,7 +498,7 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
                     n_needed = r*n
                     n_needed = int(-(-n_needed//1))   # Ceil without math module. We need a finite number of frame
                     selected_indices = order[n-n_needed:n]
-                    print(selected_indices)
+                    #print(selected_indices)
                     
                     # Select only the best
                     data_best  = data[:,:,selected_indices]
@@ -489,36 +551,36 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
                     #----------------------
 
 
-                    mean_lucky_Stracking_rot = ndimage.rotate(mean_lucky_Stracking, 35,reshape=False)
+                    # mean_lucky_Stracking_rot = ndimage.rotate(mean_lucky_Stracking, 35,reshape=False)
 
 
 
-                    mean_lucky_Stracking_rot_norm = fnc.normalise(mean_lucky_Stracking_rot,0)
-                    #mean_lucky_Stracking_rot_norm = fnc.normalise(mean_lucky_Stracking_rot_norm,0)
+                    # mean_lucky_Stracking_rot_norm = fnc.normalise(mean_lucky_Stracking_rot,0)
+                    # #mean_lucky_Stracking_rot_norm = fnc.normalise(mean_lucky_Stracking_rot_norm,0)
 
-                    hdu = fits.PrimaryHDU(mean_lucky_Stracking_rot_norm)
-                    hdu.writeto('Attempt1/temp/mean_lucky_Stracking_rot_norm.fits',overwrite=True)
+                    # hdu = fits.PrimaryHDU(mean_lucky_Stracking_rot_norm)
+                    # hdu.writeto('Attempt1/temp/mean_lucky_Stracking_rot_norm.fits',overwrite=True)
 
-                    plt.figure()
-                    plt.imshow(mean_lucky_Stracking_rot_norm)
+                    # plt.figure()
+                    # plt.imshow(mean_lucky_Stracking_rot_norm)
                     
-                    max = np.unravel_index(mean_lucky_Stracking_rot_norm.argmax(), mean_lucky_Stracking_rot_norm.shape)
+                    # max = np.unravel_index(mean_lucky_Stracking_rot_norm.argmax(), mean_lucky_Stracking_rot_norm.shape)
 
-                    cut_1 = mean_lucky_Stracking_rot_norm[max[0],:]
-                    cut_1 = ((cut_1-np.min(cut_1))/(np.max(cut_1)-np.min(cut_1)))
-                    cut_2 = mean_lucky_Stracking_rot_norm[:,max[1]]
-                    cut_2 = ((cut_2-np.min(cut_2))/(np.max(cut_2)-np.min(cut_2)))
+                    # cut_1 = mean_lucky_Stracking_rot_norm[max[0],:]
+                    # cut_1 = ((cut_1-np.min(cut_1))/(np.max(cut_1)-np.min(cut_1)))
+                    # cut_2 = mean_lucky_Stracking_rot_norm[:,max[1]]
+                    # cut_2 = ((cut_2-np.min(cut_2))/(np.max(cut_2)-np.min(cut_2)))
 
-                    plt.figure()
-                    plt.plot(cut_1)
-                    plt.grid()
-                    text_temp = 'Vertical cut'
-                    plt.title(text_temp)
-                    plt.figure()
-                    plt.plot(cut_2)
-                    plt.grid()
-                    text_temp = 'Horizontal cut'
-                    plt.title(text_temp)                                     
+                    # plt.figure()
+                    # plt.plot(cut_1)
+                    # plt.grid()
+                    # text_temp = 'Vertical cut'
+                    # plt.title(text_temp)
+                    # plt.figure()
+                    # plt.plot(cut_2)
+                    # plt.grid()
+                    # text_temp = 'Horizontal cut'
+                    # plt.title(text_temp)                                     
                     #plt.show()
                     #eError=eErrors.E_end_programm   
 
@@ -529,7 +591,7 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
                     
 
                 case 12:
-                    print('fmplay')
+                    print('display')
                     # mean_raw = np.load('temp/mean_image_raw.npy')
                     # mean_bcg = np.load('temp/mean_image_bcg.npy')
                     # mean_dustfree = np.load('temp/mean_image_dustfree.npy')
@@ -580,4 +642,4 @@ def lucky_process(a, b, r=0.05, eError=eErrors.E_arg_error):
 
 #-----------------KEEP HERE--------------------
 
-lucky_process(a,b,r,eError)
+lucky_process(a,b,r,synt_BCG,eError)

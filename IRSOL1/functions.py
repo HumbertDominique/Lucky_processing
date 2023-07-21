@@ -29,9 +29,9 @@ def eError_handling(code):
     2: ROI and the rest\n\
     3: Sigma filter and the rest\n\
     4: Normalisation\n\
-    5: Background removal\n\
-    6: Noise cut (if implemented)\n\
-    7: -\n\
+    5: Background removal (if syntBCG == True)\n\
+    6: Dark/flat frame removal (if syntBCG == False)\n\
+    7: Noise cut (if implemented)\n\
     8: Gausian noise filtering (if implemented)\n\
     9: Dust shadow removal\n\
     10: tracking\n\
@@ -67,25 +67,6 @@ def readData(n, fname):
     return data
 
 
-
-def ROI(data_in):
-    '''------------------------------------------------------------------------------------
-    # ROI(n, data)
-
-    Applies a 2-D region of interest do a 3-D array 
-
-    ## in:
-        data: 3D array with pixel data
-    ## out:
-        data: 3D array with pixel data
-    ------------------------------------------------------------------------------------'''
-
-    data = data_in[436-295:436+295,674-295:674+295,:]     # Manually done
-
-
-    return data
-
-
 def normalise(data, bits_depth = 12):
     '''------------------------------------------------------------------------------------
     # normalize(data,bits_depth)
@@ -93,7 +74,7 @@ def normalise(data, bits_depth = 12):
     Normalise images 
 
     ## in:
-        data : data: 3D array with pixel data
+        data : data: 2D array with pixel data
         bit_depth : 2^bits resolution (1<=bits<=16)
     ## out:
         data: 3D array with pixel data
@@ -101,14 +82,14 @@ def normalise(data, bits_depth = 12):
     
 
     if bits_depth<0 or bits_depth>16:
-        bits = 12
-        #print('Normalising images in ',bits,'bits')
-        if bits_depth == 0:
-            data[:,:] = ((data[:,:] - np.min(data[:,:])) / (np.max(data[:,:]) - np.min(data[:,:]))).astype(np.double)  
-        else:
-            data[:,:] = ((data[:,:] - np.min(data[:,:])) / (np.max(data[:,:]) - np.min(data[:,:]))).astype(np.double)  
-            data[:,:] = (data[:,:] - np.min(data[:,:])) / (np.max(data[:,:]) - np.min(data[:,:]))
-            data[:,:] = (data[:,:] * 2**bits).astype(np.uint16)
+        bits_depth = 12
+
+    #print('Normalising images in ',bits,'bits')
+    if bits_depth == 0:
+        data = ((data - np.min(data)) / (np.max(data) - np.min(data))).astype(np.double) 
+    else:
+        data = (data - np.min(data)) / (np.max(data) - np.min(data)).astype(np.double) 
+        data = (data * 2**bits_depth).astype(np.uint16)
 
     return data
 
@@ -130,12 +111,13 @@ def buid_mask(data, radius, grid, center=[None,None]):
     if not (center[0] and center[1]):
         center = np.zeros((2))
         height, width = data.shape
-        center[0] = height // 2  # x
-        center[1] = width // 2 # x
+        center[0] = width // 2
+        center[1] = height // 2
                 
     distance_from_center = np.sqrt((grid[0]- center[0])**2 + (grid[1] - center[1])**2)
     # Créer le masque pour exclure les pixels à l'intérieur du cercle
     mask = distance_from_center <= radius
+
     return mask
 
 
@@ -184,6 +166,7 @@ def polynomial_mask(data, mask, grid, order=4):
         a = np.dot(np.linalg.inv(A),b)
     except np.linalg.LinAlgError:
         error_flag = True
+        print('Linear algorithm error, model not build')
 
     if not error_flag:
         model = np.zeros((height,width))
