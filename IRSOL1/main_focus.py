@@ -29,16 +29,15 @@ import os
 import time
 import sys
 from customClasses import eErrors
+from customClasses import roi
 
 
 #----------------------Global variables----------
 global eError; eError = eErrors.E_all_fine
 global folder; folder = 'C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/07_aberation_disk'
 global filename; filename = '/AD_'
-global ROIx; ROIx = 478
-global ROIy; ROIy = 1042
-global ROIdx; ROIdx = 128
-global ROIdy; ROIdy = 128
+global Roi; Roi = roi(478, 1042, 128, 128)
+global noise_filter_param; noise_filter_param = 0.2 
 #------------------------------------------------
 
 k = len(sys.argv)
@@ -121,6 +120,9 @@ def lucky_process(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_error):
         while eError==eErrors.E_all_fine:
             match a:
                 case 0: # only read and save raw data
+                    temp_name = temp_path+'test'
+                    np.save(temp_name,Roi, allow_pickle=True, fix_imports=True)
+
                     print('Read data')
                     data = fnc.readData(n,path)
 
@@ -155,7 +157,7 @@ def lucky_process(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_error):
                         data = np.load(temp_name)
 
 
-                    data = data[ROIx-ROIdx:ROIx+ROIdx,ROIy-ROIdy:ROIy+ROIdy,:]
+                    data = data[Roi.x-Roi.dx:Roi.x+Roi.dx,Roi.y-Roi.dy:Roi.y+Roi.dy,:]
                     mean_image_roi = np.sum(data,2)/n
 
                     print('Saving intermediate data')
@@ -309,7 +311,7 @@ def lucky_process(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_error):
                         status = 0
                         for i in range(0,n):
                             data[:,:,i] = fnc.normalise(data[:,:,i],12)
-                            print(np.min(data[:,:,i]))
+                            # print(np.min(data[:,:,i]))
                             if 100*i//n == status*10:
                                 print('Normalisation: ',status*10,'% done')
                                 status += 1
@@ -338,15 +340,19 @@ def lucky_process(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_error):
                         print('loading Dark/flat frames')
                         temp_name = folder + '/flat.fits'
                         flat = fits.getdata(temp_name, ext=0)
-                        flat = flat[ROIx-ROIdx:ROIx+ROIdx,ROIy-ROIdy:ROIy+ROIdy]
+                        flat = flat[Roi.x-Roi.dx:Roi.x+Roi.dx,Roi.y-Roi.dy:Roi.y+Roi.dy]
                         temp_name = folder + '/dark.fits'
                         dark = fits.getdata(temp_name, ext=0)
-                        dark = dark[ROIx-ROIdx:ROIx+ROIdx,ROIy-ROIdy:ROIy+ROIdy]
+                        dark = dark[Roi.x-Roi.dx:Roi.x+Roi.dx,Roi.y-Roi.dy:Roi.y+Roi.dy]
                         print('Done')
 
+                        status = 0
                         for i in range(0,n):
                             data[:,:,i] = (data[:,:,i]-dark)/flat
                             data[:,:,i] = fnc.normalise(data[:,:,i], 12)
+                            if 100*i//n == status*10:
+                                print('Normalisation: ',status*10,'% done')
+                                status += 1
                 case 7: 
                     print('Noise cut')
                     # if data is None:
@@ -381,11 +387,13 @@ def lucky_process(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_error):
 
                     status = 0
                     for i in range(0,n):
-                        data[:,:,i] = fnc.noise_filter(data[:,:,i],0.2,[grid_x, grid_y],0)
+                        data[:,:,i] = fnc.noise_filter(data[:,:,i],noise_filter_param,[grid_x, grid_y],0)
                         if 100*i//n == status*10:
                             print('Noise filtering: ',status*10,'% done')
                             status += 1
                     print('Saving intermediate data')
+                    temp_name = temp_path+'noise_filter_param'
+                    np.save(temp_name,noise_filter_param, allow_pickle=True, fix_imports=True)
                     temp_name = temp_path+'data_filtered'
                     np.save(temp_name,data, allow_pickle=True, fix_imports=True)
 
@@ -462,6 +470,9 @@ def lucky_process(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_error):
                             status += 1
 
                     print('Saving intermediate data')
+                    temp_name = temp_path+'Speckle_pos'
+                    np.save(temp_name,data, allow_pickle=True, fix_imports=True)
+
                     temp_name = temp_path+'data_Stracked'
                     np.save(temp_name,data, allow_pickle=True, fix_imports=True)
 
@@ -498,8 +509,13 @@ def lucky_process(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_error):
                     n_needed = r*n
                     n_needed = int(-(-n_needed//1))   # Ceil without math module. We need a finite number of frame
                     selected_indices = order[n-n_needed:n]
+
+                    print('saving intermediate data')
+                    temp_name = temp_path+'selected_indices'
+                    np.save(temp_name,selected_indices, allow_pickle=True, fix_imports=True)
                     #print(selected_indices)
-                    
+                    print('done')
+
                     # Select only the best
                     data_best  = data[:,:,selected_indices]
                     del data

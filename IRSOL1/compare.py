@@ -4,28 +4,19 @@ import numpy as np
 import functions as fnc
 
 
-pic = fits.getdata('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/07_aberation_disk/AD_010.fits', ext=0)
-dark = fits.getdata('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/07_aberation_disk/dark1.fits', ext=0)
-flat = fits.getdata('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/07_aberation_disk/flat_norm.fits', ext=0)
+foc = fits.getdata('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/07_aberation_disk/temp/mean_image_Stracking.fits', ext=0)
+defdofc = fits.getdata('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/07_aberation_disk/temp/mean_image_Stracking_def.fits', ext=0)
 
 
-temp = pic
-temp = (temp-np.min(temp))/(np.max(temp)-np.min(temp))
+
 plt.figure()
-plt.imshow(temp**(1/2),vmin=0,vmax=1)
-plt.title('Raw image normalized')
+plt.imshow(foc**(1/2))
+plt.title('Focused images Stracked')
 
-temp = pic-dark
-temp = (temp-np.min(temp))/(np.max(temp)-np.min(temp))
-plt.figure()
-plt.imshow(temp**(1/2),vmin=0,vmax=1)
-plt.title('(Raw - Dark) normalized')
 
-temp = (pic-dark)/flat
-temp = (temp-np.min(temp))/(np.max(temp)-np.min(temp))
 plt.figure()
-plt.imshow(temp**(1/2),vmin=0,vmax=1)
-plt.title('(Raw - Dark)/flat_norm normalized')
+plt.imshow(defdofc**(1/2))
+plt.title('Defocused images Stracked')
 
 
 

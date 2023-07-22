@@ -36,50 +36,31 @@ global eError; eError = eErrors.E_all_fine
 global folder; folder = 'C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/07_aberation_disk'
 global filename; filename = '/AD_'
 global ROIx; ROIx = 478
-global ROIy; ROIy = 1042
-global ROIdx; ROIdx = 128
-global ROIdy; ROIdy = 128
+global ROIy; ROIy = 400
+global ROIdx; ROIdx = 256
+global ROIdy; ROIdy = 256
 #------------------------------------------------
 
 k = len(sys.argv)
 match k:
     case 1:
         a = 0
-        b = 0
-        r = None
         synt_BCG = True
         eError = eErrors.E_arg_error
     case 2:
         a = int(sys.argv[1])
-        b = None
-        r = None
         synt_BCG = False
         eError = eErrors.E_all_fine
     case 3:
         a = int(sys.argv[1])
-        b = int(sys.argv[2])
-        r = None
-        synt_BCG = False
-        eError = eErrors.E_all_fine
-    case 4:
-        a = int(sys.argv[1])
-        b = int(sys.argv[2])
-        r = float(sys.argv[3])
-        synt_BCG = False
-        eError = eErrors.E_all_fine
-    case 5:
-        a = int(sys.argv[1])
-        b = int(sys.argv[2])
-        r = float(sys.argv[3])
-        synt_BCG = (sys.argv[4]=='True')
+        synt_BCG = (sys.argv[2]=='True')
         eError = eErrors.E_all_fine
     case _:
-
         eError = eErrors.E_arg_error
         a=0
 
 
-def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_error):
+def lucky_process_defocuss(a, synt_BCG = False, eError=eErrors.E_arg_error):
     '''------------------------------------------------------------------------------------
     # main(a, b, eError=eErrors.E_arg_error)
     Processes lucky imaging frames
@@ -98,22 +79,6 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
         path = folder+filename
         temp_path = folder+'/temp/'
         [k, j] = fits.getdata(path+'001.fits', ext=0).shape
-        # -----------------------------count files-----------------------------
-
-        n = 0
-
-        # Iterate directory
-        for path in os.listdir(folder):
-            # check if current path is a file
-            if os.path.isfile(os.path.join(folder, path)):
-                n += 1
-
-        # ----------------------------------------------------------
-        if b is None:       # qty of frames to use
-            b = 20
-        else:
-            n = b
-        # ----------------------------------------------------------
 
         path = folder+filename
         
@@ -121,65 +86,57 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
         while eError==eErrors.E_all_fine:
             match a:
                 case 0: # only read and save raw data
+                    1
+                case 1:
                     print('Read data')
-                    data = fnc.readData(n,path)
+                    temp_name = temp_path+'selected_indices.npy'
+                    indices = np.load(temp_name)
+                    status = 0
+                    n = np.prod(indices.shape)
+                    for i in range(0, n):
+                        Imfilename = path+'{:03d}'.format(indices[i])+'.fits'
+                        if i==0:                    # Gets the pic size on first pass
+                            [k, j] = fits.getdata(path+'001.fits', ext=0).shape
+                            data = np.zeros((k,j,n))
+                        data[:,:,i] = fits.getdata(Imfilename, ext=0)
+
+                        if 100*(i+1)//n == status*10:
+                            print('Reading data: ',status*10,'% done')
+                            status += 1
 
                     mean_image_raw = np.sum(data,2)/n
                     print('Saving intermediate data')
-                    temp_name = temp_path+'data_raw'
-                    np.save(temp_name,data, allow_pickle=True, fix_imports=True)
-                    print('Done')  
-                    eError=eErrors.E_end_programm
-                case 1:
-                    print('Read data')
-                    data = fnc.readData(n,path)
-                    mean_image_raw = np.sum(data,2)/n
-                    print('Saving intermediate data')
-                    temp_name = temp_path+'mean_image_raw'
+                    temp_name = temp_path+'mean_image_raw_def'
                     np.save(temp_name,mean_image_raw, allow_pickle=True, fix_imports=True)
                     print('Done')
-                    # plt.figure()
-                    # plt.imshow(data[:,:,0],vmin=0,vmax=4095)
-                    # plt.title('Raw image')
-                    # plt.figure()
-                    
-                    # plt.imshow(mean_image_raw,cmap='gray',vmin=0,vmax=4095)
-                    # text_temp = 'Raw mean on {n:d} samples'
-                    # plt.title(text_temp.format(n=n))
-                    # plt.show()
+
+                    # eError = eErrors.E_end_programm
                 case 2:
                     print('ROI')
                     if data is None:
-                        print('Loading raw data')
-                        temp_name = temp_path+'data_raw.npy'
+                        temp_name = temp_path+'data_roi_def.npy'
+                        print('Loading ROI data')
                         data = np.load(temp_name)
-
-
+                        
                     data = data[ROIx-ROIdx:ROIx+ROIdx,ROIy-ROIdy:ROIy+ROIdy,:]
                     mean_image_roi = np.sum(data,2)/n
 
                     print('Saving intermediate data')
-                    temp_name = temp_path+'data_roi'
+                    temp_name = temp_path+'data_roi_def'
                     np.save(temp_name,data, allow_pickle=True, fix_imports=True)
-                    temp_name = temp_path+'mean_image_roi.fits'
+                    temp_name = temp_path+'mean_image_roi_def.fits'
                     hdu = fits.PrimaryHDU(mean_image_roi)
                     hdu.writeto(temp_name,overwrite=True)
                     print('Done')
 
                     # plt.figure()
-                    # plt.imshow(data[:,:,0],vmin=0,vmax=4095)
-                    # plt.title('ROI image')
-
-                    # # plt.figure()
-                    # # plt.imshow(mean_image_roi)
-                    # # text_temp = 'ROI mean on {n:d} samples'
-                    # # plt.title(text_temp.format(n=n))
+                    # plt.imshow(data[:,:,0])
                     # plt.show()
                     # eError = eErrors.E_end_programm
                 case 3:
                     print('Sigma filter')
                     if data is None:
-                        temp_name = temp_path+'data_roi.npy'
+                        temp_name = temp_path+'data_roi_def.npy'
                         print('Loading ROI data')
                         data = np.load(temp_name)
                     
@@ -189,30 +146,19 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
                         if 100*i//n == status*10:
                             print('Sigma filtering: ',status*10,'% done')
                             status += 1
-                    temp_name = temp_path+'data_sigma'
+                    temp_name = temp_path+'data_sigma_def'
                     np.save(temp_name,data, allow_pickle=True, fix_imports=True)
                     print('Done')
                     mean_image_sigma = np.sum(data,2)/n
-                    temp_name = temp_path+'mean_image_sigma.fits'
+                    temp_name = temp_path+'mean_image_sigma_def.fits'
                     hdu = fits.PrimaryHDU(mean_image_sigma)
                     hdu.writeto(temp_name,overwrite=True)
-                    # plt.figure()
-                    # plt.imshow(data[:,:,0],cmap='gray',vmin=0,vmax=4095)
-                    # plt.title('Sigma image')
-
-                    # plt.figure()
-                    # plt.imshow(mean_image_sigma,cmap='gray',vmin=0,vmax=4095)
-                    # text_temp = 'Sigma mean on {n:d} samples'
-                    # plt.title(text_temp.format(n=n))
-
-
-
                     
                 case 4:
                     print('Normalisation')
                     if data is None:
                         print('Loading sigma data')
-                        temp_name = temp_path+'data_sigma.npy'
+                        temp_name = temp_path+'data_sigma_def.npy'
                         data = np.load(temp_name)
 
                     status = 0
@@ -223,28 +169,19 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
                             status += 1
 
                     print('Saving intermediate data')
-                    temp_name = temp_path+'data_norm'
+                    temp_name = temp_path+'data_norm_def'
                     np.save(temp_name,data, allow_pickle=True, fix_imports=True)
                     print('Done')
                     mean_image_norm = np.sum(data,2)/n
-                    # plt.figure()
-                    # plt.imshow(data[:,:,0])
-                    # plt.show()
-
-                    # eError = eErrors.E_end_programm
-
                 
                 case 5:
                     if synt_BCG:
                         print("Background")
                         if data is None:
                             print('loading norm data')
-                            temp_name = temp_path+'data_norm.npy'
+                            temp_name = temp_path+'data_norm_def.npy'
                             data = np.load(temp_name)
-                        # plt.figure()
-                        # plt.imshow(data[:,:,0])
-                        # plt.title('Data')
-                        # plt.show()    
+   
                         mask_radius = 35  # Rayon du cercle à exclure
                         
                         print("Speckles location")
@@ -286,26 +223,19 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
                                 status += 1
 
                         print('Saving intermediate data')
-                        temp_name = temp_path+'data_mask'
+                        temp_name = temp_path+'data_mask_def'
                         np.save(temp_name,mask, allow_pickle=True, fix_imports=True)
                         # plt.figure()
                         # plt.imshow(mask[:,:,0])
                         # plt.title('Mask')
                         # plt.show()
                         del mask
-                        temp_name = temp_path+'data_model'
+                        temp_name = temp_path+'data_model_def'
                         np.save(temp_name,model, allow_pickle=True, fix_imports=True)
                         del model
-                        temp_name = temp_path+'data_bcg'
+                        temp_name = temp_path+'data_bcg_def'
                         np.save(temp_name,data, allow_pickle=True, fix_imports=True)
                         print('Done')
-
-                        # status = 0
-                        # for i in range(0,n):
-                        #     data[:,:,i] = (data[:,:,i]-np.min(data[:,:,i]))/(np.max(data[:,:,i])-np.min(data[:,:,i]))
-                        #     if 100*i//n == status*10:
-                        #         print('Normalisation: ',status*10,'% done')
-                        #         status += 1
                         status = 0
                         for i in range(0,n):
                             data[:,:,i] = fnc.normalise(data[:,:,i],12)
@@ -315,24 +245,18 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
                                 status += 1
                         
                         mean_image_bcg = np.sum(data,2)/n 
-                        temp_name = temp_path+'mean_image_bcg.fits'
+                        temp_name = temp_path+'mean_image_bcg_def.fits'
                         hdu = fits.PrimaryHDU(mean_image_bcg)
                         hdu.writeto(temp_name,overwrite=True)
                         print('Done')
 
-                        
-                        # plt.figure()
-                        # plt.imshow(mean_image_bcg,cmap='gray',vmin=0,vmax=4095)
-                        # text_temp = 'Bcg removed mean on {n:d} samples'
-                        # plt.title(text_temp.format(n=n))
-                        # plt.show()
-                        # eError = eErrors.E_end_programm
+
                 case 6:
                      if not synt_BCG:
                         print("Dark/flat removal")
                         if data is None:
                             print('loading norm data')
-                            temp_name = temp_path + 'data_norm.npy'
+                            temp_name = temp_path + 'data_norm_def.npy'
                             data = np.load(temp_name)
                             print('Done')
                         print('loading Dark/flat frames')
@@ -347,37 +271,19 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
                         for i in range(0,n):
                             data[:,:,i] = (data[:,:,i]-dark)/flat
                             data[:,:,i] = fnc.normalise(data[:,:,i], 12)
-                case 7: 
-                    print('Noise cut')
-                    # if data is None:
-                    #     print('Loading bcg data')
-                    #     temp_name = temp_path+'data_bcg.npy'
-                    #     data = np.load(temp_name)
-                    #     k, j, n = data.shape
-                    #     data = np.zeros((k,j,n))
-                    # data[:,:,0] = fnc.noise_cut(data[:,:,0])
-                    # plt.figure()
-                    # plt.imshow(data[:,:,0])
-                    # text_temp = 'Noise cut'
-                    # plt.title(text_temp)
-                    #plt.show()
-   
+                case 7:
+                    1
                 case 8:
                     print('Noise filtering')
                     if data is None:
                         print('Loading filtered data')
-                        temp_name = temp_path+'data_bcg.npy'
+                        temp_name = temp_path+'data_bcg_def.npy'
                         data = np.load(temp_name)
                         print('Done')
                     height, width, n = data.shape
                     x = np.linspace(-1,1,height)
                     y = np.linspace(-1,1,width)
                     grid_x, grid_y = np.meshgrid(x, y)
-
-                    # plt.figure()
-                    # plt.imshow(data[:,:,0]**(1/8))
-                    # text_temp = 'Unfiltered'
-                    # plt.title(text_temp)
 
                     status = 0
                     for i in range(0,n):
@@ -386,20 +292,15 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
                             print('Noise filtering: ',status*10,'% done')
                             status += 1
                     print('Saving intermediate data')
-                    temp_name = temp_path+'data_filtered'
+                    temp_name = temp_path+'data_filtered_def'
                     np.save(temp_name,data, allow_pickle=True, fix_imports=True)
 
                     mean_image_filtered = np.sum(data,2)/n 
-                    temp_name = temp_path+'mean_image_filtered.fits'
+                    temp_name = temp_path+'mean_image_filtered_def.fits'
                     hdu = fits.PrimaryHDU(mean_image_filtered)
                     hdu.writeto(temp_name,overwrite=True)
                     print('Done')
-                    # plt.figure()
-                    # plt.imshow(data[:,:,0]**(1/1),)
-                    # text_temp = 'Noise filtered'
-                    # plt.title(text_temp)
-                    # plt.show()
-                    # eError = eErrors.E_end_programm
+
                 case 9:
                     print('Dust spots')
                     # NdustSpots = 7
@@ -407,11 +308,11 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
                     # status = 0;
                     # if data is None:
                     #     print('Loading filtered data')
-                    #     temp_name = temp_path+'data_filtered.npy'
+                    #     temp_name = temp_path+'data_filtered_def.npy'
                     #     data = np.load(temp_name)
 
                     # try: mean_image_bcg
-                    # except NameError: mean_image_bcg = np.load('temp/mean_image_bcg.npy')
+                    # except NameError: mean_image_bcg = np.load('temp/mean_image_bcg_def.npy')
                     # # plt.figure()
                     # # plt.imshow(mean_image_bcg)
                     # # text_temp = 'Shadows everywhere!!!'
@@ -428,12 +329,12 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
                     #         status += 1
                     
                     # print('Saving intermediate data')
-                    # temp_name = temp_path+'data_dustfree'
+                    # temp_name = temp_path+'data_dustfree_def'
                     # np.save(temp_name,data, allow_pickle=True, fix_imports=True)
 
                     # mean_image_dustfree = np.sum(data,2)/n 
-                    # temp_name = temp_path+'mean_image_dustfree.fits'
-                    # hdu = fits.PrimaryHDU(mean_image_dustfree)
+                    # temp_name = temp_path+'mean_image_dustfree_def.fits'
+                    # hdu = fits.PrimaryHDU(mean_image_dustfree_def)
                     # hdu.writeto(temp_name,overwrite=True)
                     # print('Done')
 
@@ -446,7 +347,7 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
                     print('tracking')  
                     if data is None:
                         print('Loading shadowless data')
-                        temp_name = temp_path+'data_dustfree.npy'
+                        temp_name = temp_path+'data_dustfree_def.npy'
                         data = np.load(temp_name) 
                     status = 0
 
@@ -462,11 +363,11 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
                             status += 1
 
                     print('Saving intermediate data')
-                    temp_name = temp_path+'data_Stracked'
+                    temp_name = temp_path+'data_Stracked_def'
                     np.save(temp_name,data, allow_pickle=True, fix_imports=True)
 
                     mean_image_Stracking = np.sum(data,2)/n
-                    temp_name = temp_path+'mean_image_Stracking.fits'
+                    temp_name = temp_path+'mean_image_Stracking_def.fits'
                     hdu = fits.PrimaryHDU(mean_image_Stracking)
                     hdu.writeto(temp_name,overwrite=True)
                     print('Done')
@@ -480,42 +381,26 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
                     print('Selection')
                     if data is None:
                         print('Loading Stracked data')
-                        temp_name = temp_path+'data_Stracked.npy'
+                        temp_name = temp_path+'data_Stracked_def.npy'
                         data = np.load(temp_name) 
 
-                    #r = 0.2 # [%] # now a global variable
-                    text_temp = 'Selecting the {r:.2f}% best frames'
-                    print(text_temp.format(r=100*r))
-
-                    # Find the most luminous pixel on each frame
-                    max_pixel_light = np.zeros((n))
-                    for i in range(0,n):
-                        max_pixel_light[i] = np.amax(data[:,:,i])
-                    order = np.argsort(max_pixel_light)
-                    #print(order)
-
-                    # sort by Luminosity  in the brightest pixel 
-                    n_needed = r*n
-                    n_needed = int(-(-n_needed//1))   # Ceil without math module. We need a finite number of frame
-                    selected_indices = order[n-n_needed:n]
-                    #print(selected_indices)
-                    
-                    # Select only the best
-                    data_best  = data[:,:,selected_indices]
-                    del data
-
-                    mean_lucky_Stracking = np.sum(data_best,2)/n
+                    mean_lucky_Stracking = np.sum(data,2)/n
                     
 
                     print('saving intermediate data')
                     hdu = fits.PrimaryHDU(mean_lucky_Stracking)
-                    hdu.writeto('Attempt1/temp/mean_lucky_Stracking.fits',overwrite=True)
+                    hdu.writeto('Attempt1/temp/mean_lucky_Stracking_def.fits',overwrite=True)
                     print('done')
                   
+                    print('saving intermediate data')
+                    hdu = fits.PrimaryHDU(mean_lucky_Stracking)
+                    hdu.writeto('Attempt1/temp/mean_lucky_Stracking_def.fits',overwrite=True)
+                    print('done')
+
                     plt.figure()
                     plt.imshow(mean_lucky_Stracking)
-                    text_temp = 'Mean {r:.2f}% speckle tracked frames'
-                    plt.title(text_temp.format(r=100*r))
+                    text_temp = 'Mean lucky Strackng'
+                    plt.title(text_temp)
 
                     mean_lucky_Stracking_norm = fnc.normalise(mean_lucky_Stracking,12)
                     # max = np.unravel_index(mean_lucky_Stracking_norm.argmax(), mean_lucky_Stracking_norm.shape)
@@ -592,37 +477,7 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
 
                 case 12:
                     print('display')
-                    # mean_raw = np.load('temp/mean_image_raw.npy')
-                    # mean_bcg = np.load('temp/mean_image_bcg.npy')
-                    # mean_dustfree = np.load('temp/mean_image_dustfree.npy')
-                    # mean_image_Stracking = np.load('temp/mean_image_Stracking.npy')
-
-                    #data_roi = np.load('temp/data_roi.npy')
-                    #mean_lucky_Stracking = np.load('temp/mean_lucky_Stracking.npy')
-                    #plt.imsave('roi.jpg',data_roi[:,:,0])
-
-
-                    # plt.figure()
-                    # plt.imshow(mean_raw)
-                    # plt.title('Mean raw data')
-                    # plt.figure()
-                    # plt.imshow(mean_bcg)
-                    # plt.title('Mean Bcg removed data')
-                    # plt.figure()
-                    # plt.imshow(mean_dustfree)
-                    # plt.title('Mean dustfree data')
-                    # plt.figure()
-                    # plt.imshow(mean_image_Stracking)
-                    # plt.title('Mean speckle tracked data')
-                    # plt.figure()
-                    # plt.imshow(mean_lucky_Stracking)
-                    # plt.title('Mean speckle tracked data (20% best)')
-
-                    
-
                     plt.show()
-
-
                     eError=eErrors.E_end_programm
                 case _:
                     et = time.time()
@@ -642,4 +497,4 @@ def lucky_process_defocuss(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_
 
 #-----------------KEEP HERE--------------------
 
-lucky_process_defocuss(a,b,r,synt_BCG,eError)
+lucky_process_defocuss(a,synt_BCG,eError)
