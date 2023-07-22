@@ -33,10 +33,10 @@ from customClasses import eErrors
 
 #----------------------Global variables----------
 global eError; eError = eErrors.E_all_fine
-global folder; folder = 'C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/07_aberation_disk'
-global filename; filename = '/AD_'
-global ROIx; ROIx = 478
-global ROIy; ROIy = 400
+global folder; folder = 'C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/08_aberations_with_foen'
+global filename; filename = '/AF_'
+global ROIx; ROIx = 500
+global ROIy; ROIy = 355
 global ROIdx; ROIdx = 256
 global ROIdy; ROIdy = 256
 #------------------------------------------------

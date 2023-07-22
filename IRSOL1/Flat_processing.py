@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy import stats
 
-flat = fits.getdata('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/07_aberation_disk/flat.fits', ext=0)
-dark = fits.getdata('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/07_aberation_disk/dark1.fits', ext=0)
+flat = fits.getdata('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/08_aberations_with_foen/flat.fits', ext=0)
+dark = fits.getdata('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/08_aberations_with_foen/dark.fits', ext=0)
 
 plt.figure()
 plt.imshow(flat)
@@ -39,4 +39,4 @@ plt.title('(Flat - Dark) normalized')
 plt.show()
 
 hdu = fits.PrimaryHDU(flat)
-hdu.writeto('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/07_aberation_disk/flat_norm.fits',overwrite=True)
+hdu.writeto('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/08_aberations_with_foen/flat_norm.fits',overwrite=True)

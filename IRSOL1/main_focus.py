@@ -34,9 +34,9 @@ from customClasses import roi
 
 #----------------------Global variables----------
 global eError; eError = eErrors.E_all_fine
-global folder; folder = 'C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/07_aberation_disk'
-global filename; filename = '/AD_'
-global Roi; Roi = roi(478, 1042, 128, 128)
+global folder; folder = 'C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/08_aberations_with_foen'
+global filename; filename = '/AF_'
+global Roi; Roi = roi(480, 1000, 128, 128)
 global noise_filter_param; noise_filter_param = 0.2 
 #------------------------------------------------
 
@@ -145,10 +145,11 @@ def lucky_process(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_error):
                     # plt.title('Raw image')
                     # plt.figure()
                     
-                    # plt.imshow(mean_image_raw,cmap='gray',vmin=0,vmax=4095)
+                    # plt.imshow(mean_image_raw**(1/4))
                     # text_temp = 'Raw mean on {n:d} samples'
                     # plt.title(text_temp.format(n=n))
                     # plt.show()
+                    # eError=eErrors.E_end_programm
                 case 2:
                     print('ROI')
                     if data is None:
