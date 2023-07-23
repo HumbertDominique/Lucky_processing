@@ -472,7 +472,6 @@ def lucky_process(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_error):
                         if 100*i//n == status*10:
                             print('Tracking: ',status*10,'% done')
                             status += 1
-                    print(Speckle_pos)
                     print('Saving intermediate data')
                     temp_name = temp_path+'Speckle_pos'
                     np.save(temp_name,Speckle_pos, allow_pickle=True, fix_imports=True)
