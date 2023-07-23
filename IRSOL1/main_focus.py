@@ -38,6 +38,7 @@ global folder; folder = 'C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/08_a
 global filename; filename = '/AF_'
 global Roi; Roi = roi(480, 1000, 128, 128)
 global noise_filter_param; noise_filter_param = 0.2 
+global NdustSpots; NdustSpots = 0
 #------------------------------------------------
 
 k = len(sys.argv)
@@ -411,34 +412,33 @@ def lucky_process(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_error):
                     # eError = eErrors.E_end_programm
                 case 9:
                     print('Dust spots')
-                    # NdustSpots = 7
-                    # spot_model_radius = 25  
-                    # status = 0;
-                    # if data is None:
-                    #     print('Loading filtered data')
-                    #     temp_name = temp_path+'data_filtered.npy'
-                    #     data = np.load(temp_name)
+                    spot_model_radius = 25  
+                    status = 0;
+                    if data is None:
+                        print('Loading filtered data')
+                        temp_name = temp_path+'data_filtered.npy'
+                        data = np.load(temp_name)
 
-                    # try: mean_image_bcg
-                    # except NameError: mean_image_bcg = np.load('temp/mean_image_bcg.npy')
-                    # # plt.figure()
-                    # # plt.imshow(mean_image_bcg)
-                    # # text_temp = 'Shadows everywhere!!!'
-                    # # plt.title(text_temp)
-                    # # find a dust spot for the model
-                    # index_model = np.unravel_index(mean_image_bcg[:,:].argmin(), mean_image_bcg[:,:].shape)
-                    # dust_model = mean_image_bcg[index_model[0]-spot_model_radius:index_model[0]+spot_model_radius,index_model[1]-spot_model_radius:index_model[1]+spot_model_radius]
-                    # dust_model /= np.min(dust_model)
+                    try: mean_image_bcg
+                    except NameError: mean_image_bcg = np.load('temp/mean_image_bcg.npy')
+                    # plt.figure()
+                    # plt.imshow(mean_image_bcg)
+                    # text_temp = 'Shadows everywhere!!!'
+                    # plt.title(text_temp)
+                    # find a dust spot for the model
+                    index_model = np.unravel_index(mean_image_bcg[:,:].argmin(), mean_image_bcg[:,:].shape)
+                    dust_model = mean_image_bcg[index_model[0]-spot_model_radius:index_model[0]+spot_model_radius,index_model[1]-spot_model_radius:index_model[1]+spot_model_radius]
+                    dust_model /= np.min(dust_model)
                     
-                    # for i in range(0,n):
-                    #     data[:,:,i] = fnc.image_dusting(data[:,:,i],dust_model,4)
-                    #     if 100*i//n == status*10:
-                    #         print('Dust shadow removal: ',status*10,'% done')
-                    #         status += 1
+                    for i in range(0,n):
+                        data[:,:,i] = fnc.image_dusting(data[:,:,i],dust_model,4)
+                        if 100*i//n == status*10:
+                            print('Dust shadow removal: ',status*10,'% done')
+                            status += 1
                     
-                    # print('Saving intermediate data')
-                    # temp_name = temp_path+'data_dustfree'
-                    # np.save(temp_name,data, allow_pickle=True, fix_imports=True)
+                    print('Saving intermediate data')
+                    temp_name = temp_path+'data_dustfree'
+                    np.save(temp_name,data, allow_pickle=True, fix_imports=True)
 
                     # mean_image_dustfree = np.sum(data,2)/n 
                     # temp_name = temp_path+'mean_image_dustfree.fits'
