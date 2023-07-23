@@ -458,21 +458,24 @@ def lucky_process(a, b, r=0.05, synt_BCG = False, eError=eErrors.E_arg_error):
                         temp_name = temp_path+'data_dustfree.npy'
                         data = np.load(temp_name) 
                     status = 0
+                    Speckle_pos = np.zeros((n,2))
 
                     for i in range(n):
                         speckles = np.unravel_index(data[:,:,i].argmax(), data[:,:,i].shape)
                         if i == 0:
                             ref = speckles
                         Dx = ref[0]-speckles[0] 
-                        Dy = ref[1]-speckles[1] 
+                        Dy = ref[1]-speckles[1]
+                        Speckle_pos[i,0] = speckles[0] 
+                        Speckle_pos[i,1] = speckles[1] 
                         data[:,:,i] = np.roll(data[:,:,i],(Dy,Dx),axis=(1,0))
                         if 100*i//n == status*10:
                             print('Tracking: ',status*10,'% done')
                             status += 1
-
+                    print(Speckle_pos)
                     print('Saving intermediate data')
                     temp_name = temp_path+'Speckle_pos'
-                    np.save(temp_name,data, allow_pickle=True, fix_imports=True)
+                    np.save(temp_name,Speckle_pos, allow_pickle=True, fix_imports=True)
 
                     temp_name = temp_path+'data_Stracked'
                     np.save(temp_name,data, allow_pickle=True, fix_imports=True)

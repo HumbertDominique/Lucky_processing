@@ -345,18 +345,15 @@ def lucky_process_defocuss(a, synt_BCG = False, eError=eErrors.E_arg_error):
                     # plt.show()
                 case 10:
                     print('tracking')  
-                    if data is None:
-                        print('Loading shadowless data')
-                        temp_name = temp_path+'data_dustfree_def.npy'
-                        data = np.load(temp_name) 
+                    print('loading some data')
+                    temp_name = temp_path+'Speckle_pos.npy'
+                    speckles = np.load(temp_name)
                     status = 0
+                    speckles = speckles[indices].astype(np.uint16)
 
-                    for i in range(n):
-                        speckles = np.unravel_index(data[:,:,i].argmax(), data[:,:,i].shape)
-                        if i == 0:
-                            ref = speckles
-                        Dx = ref[0]-speckles[0] 
-                        Dy = ref[1]-speckles[1] 
+                    for i in range(0, n):
+                        Dx = speckles[0,0]-speckles[i,0] 
+                        Dy = speckles[0,1]-speckles[i,1] 
                         data[:,:,i] = np.roll(data[:,:,i],(Dy,Dx),axis=(1,0))
                         if 100*i//n == status*10:
                             print('Tracking: ',status*10,'% done')
@@ -399,7 +396,7 @@ def lucky_process_defocuss(a, synt_BCG = False, eError=eErrors.E_arg_error):
 
                     plt.figure()
                     plt.imshow(mean_lucky_Stracking)
-                    text_temp = 'Mean lucky Strackng'
+                    text_temp = 'Mean lucky Stracking'
                     plt.title(text_temp)
 
                     mean_lucky_Stracking_norm = fnc.normalise(mean_lucky_Stracking,12)
