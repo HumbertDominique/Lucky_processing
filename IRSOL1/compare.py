@@ -10,12 +10,12 @@ defdofc = fits.getdata('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/08_ab
 
 
 plt.figure()
-plt.imshow(foc**(1/2))
+plt.imshow(foc**(1/1))
 plt.title('Focused images Stracked')
 
 
 plt.figure()
-plt.imshow(defdofc**(1/2))
+plt.imshow(defdofc**(1/1))
 plt.title('Defocused images Stracked')
 
 
