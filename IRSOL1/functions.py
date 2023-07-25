@@ -797,7 +797,7 @@ def lucky_process_defocus(a = 1, synt_BCG = False, eError=eErrors.E_all_fine):
 
                         status = 0
                         for i in range(0,n):
-                            mask[:,:,i] = buid_mask(data[:,:,i],mask_radius,[grid_x_UINT, grid_y_UINT],speckles[:,i])
+                            mask[:,:,i] = buid_mask(data[:,:,i],mask_radius,[grid_x_UINT, grid_y_UINT]) # mask is buit in the center
                             model[:,:,i], poly_error_flag = polynomial_mask(data[:,:,i],mask[:,:,i],[grid_x, grid_y],4)
                             if poly_error_flag:
                                 data[:,:,i] -= data[:,:,i]            # if the model could not be build, the data is set to 0. thus not beeing used 
