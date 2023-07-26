@@ -13,19 +13,13 @@ plt.figure()
 plt.plot(flat[450,:])
 plt.title('Flat field pre-normalisation')
 
-
-# flat = (flat-np.min(flat))/(np.max(flat)-np.min(flat))
-
-# plt.figure()
-# plt.imshow(flat)
-# plt.title('Flat field')
-
 plt.figure()
 plt.imshow(dark)
 plt.title('Dark field')
 
 temp = flat-dark
 temp = (temp-np.min(temp))/(np.max(temp)-np.min(temp))
+flat = temp
 
 plt.figure()
 plt.imshow((temp))
