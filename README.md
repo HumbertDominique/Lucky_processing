@@ -43,23 +43,37 @@ Display can be coded inside ```Lucky_process``` or using ```compare.py```
 ### From the command line
 
 ```
-flat_proc.py
-    python main_focus.py 1 10       # Correct the ROI in functions.py
-    python main_focus.py r = 0.01   # process the whole batch and selects the 1% best frames
-    python main_defocus.py          # process the whole batch
+   flat_proc.py
+   python main_focus.py 1 10       # Correct the ROI in functions.py
+   python main_focus.py r = 0.01   # process the whole batch and selects the 1% best frames
+   python main_defocus.py          # process the whole batch
 ```
 
 ### From the command line in python
+
 ```
-flat_proc.py
-    py # Start python
-    import flat_proc
-    import functions as fnc
-    fnc.lucky_process_focus(1, 10)
-    exit()                              # Correct the ROI in functions.py
-    py # Start python
-    import functions as fnc
-    fnc.lucky_process_focus(1, 10)
-    fnc.lucky_process_focus(r = 0.01)   # process the whole batch and selects the 1% best frames
-    fnc.lucky_process_defocus()         # process the whole batch
-    ```
+   py # Start python
+   import flat_proc
+   import functions as fnc
+   fnc.lucky_process_focus(1, 10)
+   exit()                              # Correct the ROI in functions.py
+   py # Start python
+   import functions as fnc
+   fnc.lucky_process_focus(1, 10)
+   fnc.lucky_process_focus(r = 0.01)   # process the whole batch and selects the 1% best frames
+   fnc.lucky_process_defocus()         # process the whole batch
+```
+
+### Results
+
+
+<img align="center" width="600" height="600" src="assets/in.jpg">
+<figcaption align = "center"><b>Fig.1 - example of frame in</b>
+</figcaption>
+
+<br/><br/><br/>
+
+
+<img align="center" width="600" height="600" src="assets/out.jpg">
+<figcaption align = "center"><b>Fig.2 - frame out, 10% best selected and speckle tracked.</b>
+</figcaption>
