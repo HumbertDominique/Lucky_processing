@@ -21,9 +21,11 @@ from scipy import ndimage
 
 global folder; folder = 'C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/08_aberations_with_foen'
 global filename; filename = '/AF_'
-global Roi_focus; Roi_focus = roi(485, 995, 64, 64)
-global Roi_defocus; Roi_defocus = roi(500, 355, 256, 256)
-global noise_filter_param; noise_filter_param = 0.2 
+
+global Roi_focus; Roi_focus = roi(485, 995, 64, 64)                # center x, center y, x dist from center, y dist from center
+global Roi_defocus; Roi_defocus = roi(500, 355, 256, 256)          # center x, center y, x dist from center, y dist from center
+
+global noise_filter_param; noise_filter_param = 0.2
 global NdustSpots; NdustSpots = 0
 
 '''------------------------------------------------------------------------------------
@@ -82,7 +84,7 @@ def lucky_process_focus(a=1, b=None, r=0.1, synt_BCG = False, eError=eErrors.E_a
         # ------------------------------Variables------------------------------
         data = None
         path = folder+filename
-        temp_path = folder+'/temp/'
+        temp_path = folder+'/temp'
         [k, j] = fits.getdata(path+'001.fits', ext=0).shape
         # -----------------------------count files-----------------------------
 
@@ -326,6 +328,7 @@ def lucky_process_focus(a=1, b=None, r=0.1, synt_BCG = False, eError=eErrors.E_a
                             data = np.load(temp_name)
                             print('Done')
                         print('loading Dark/flat frames')
+
                         temp_name = temp_path + '/flat_norm.fits'
                         flat = fits.getdata(temp_name, ext=0)
                         flat = flat[Roi_focus.x-Roi_focus.dx:Roi_focus.x+Roi_focus.dx,Roi_focus.y-Roi_focus.dy:Roi_focus.y+Roi_focus.dy]
@@ -515,13 +518,15 @@ def lucky_process_focus(a=1, b=None, r=0.1, synt_BCG = False, eError=eErrors.E_a
 
                     print('saving intermediate data')
                     hdu = fits.PrimaryHDU(mean_lucky_Stracking)
-                    hdu.writeto('Attempt1/temp/mean_lucky_Stracking.fits',overwrite=True)
+                    temp_name = temp_path+'(mean_lucky_Strackings'
+                    hdu.writeto(temp_name,overwrite=True)
                     print('done')
                   
                     plt.figure()
                     plt.imshow(mean_lucky_Stracking)
                     text_temp = 'Mean {r:.2f}% speckle tracked frames'
                     plt.title(text_temp.format(r=100*r))
+
 
                     # mean_lucky_Stracking_norm = normalise(mean_lucky_Stracking,12)
                     # max = np.unravel_index(mean_lucky_Stracking_norm.argmax(), mean_lucky_Stracking_norm.shape)
@@ -564,8 +569,9 @@ def lucky_process_focus(a=1, b=None, r=0.1, synt_BCG = False, eError=eErrors.E_a
                     # mean_lucky_Stracking_rot_norm = normalise(mean_lucky_Stracking_rot,0)
                     # #mean_lucky_Stracking_rot_norm = normalise(mean_lucky_Stracking_rot_norm,0)
 
+                    # temp_name = temp_path+'mean_lucky_Stracking_rot_norm'
                     # hdu = fits.PrimaryHDU(mean_lucky_Stracking_rot_norm)
-                    # hdu.writeto('Attempt1/temp/mean_lucky_Stracking_rot_norm.fits',overwrite=True)
+                    # hdu.writeto(temp_name,overwrite=True)
 
                     # plt.figure()
                     # plt.imshow(mean_lucky_Stracking_rot_norm)
@@ -971,18 +977,15 @@ def lucky_process_defocus(a = 1, synt_BCG = False, eError=eErrors.E_all_fine):
                     
                     mean_lucky_Stracking = normalise(mean_lucky_Stracking, 12)
                     print('saving intermediate data')
+                    temp_name = temp_path+'mean_lucky_Stracking_def.fits'
                     hdu = fits.PrimaryHDU(mean_lucky_Stracking)
-                    hdu.writeto('Attempt1/temp/mean_lucky_Stracking_def.fits',overwrite=True)
+                    hdu.writeto(temp_name,overwrite=True)
                     print('done')
-                  
-                    print('saving intermediate data')
-                    hdu = fits.PrimaryHDU(mean_lucky_Stracking)
-                    hdu.writeto('Attempt1/temp/mean_lucky_Stracking_def.fits',overwrite=True)
-                    print('done')
+
 
                     plt.figure()
                     plt.imshow(mean_lucky_Stracking)
-                    text_temp = 'Mean lucky Stracking'
+                    text_temp = 'Mean lucky Stracking_def'
                     plt.title(text_temp)
 
                     # mean_lucky_Stracking_norm = normalise(mean_lucky_Stracking,12)
@@ -1026,8 +1029,9 @@ def lucky_process_defocus(a = 1, synt_BCG = False, eError=eErrors.E_all_fine):
                     # mean_lucky_Stracking_rot_norm = normalise(mean_lucky_Stracking_rot,0)
                     # #mean_lucky_Stracking_rot_norm = normalise(mean_lucky_Stracking_rot_norm,0)
 
+                    # temp_name = temp_path+'mean_lucky_Stracking_rot_norm_def.npy'
                     # hdu = fits.PrimaryHDU(mean_lucky_Stracking_rot_norm)
-                    # hdu.writeto('Attempt1/temp/mean_lucky_Stracking_rot_norm.fits',overwrite=True)
+                    # hdu.writeto(temp_name,overwrite=True)
 
                     # plt.figure()
                     # plt.imshow(mean_lucky_Stracking_rot_norm)
@@ -1049,8 +1053,8 @@ def lucky_process_defocus(a = 1, synt_BCG = False, eError=eErrors.E_all_fine):
                     # plt.grid()
                     # text_temp = 'Horizontal cut'
                     # plt.title(text_temp)                                     
-                    #plt.show()
-                    #eError=eErrors.E_end_programm   
+                    # plt.show()
+                    # eError=eErrors.E_end_programm   
 
                     et = time.time()
                     # get the execution time

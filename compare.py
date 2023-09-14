@@ -4,13 +4,13 @@ import numpy as np
 import functions as fnc
 
 
-foc = fits.getdata('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/08_aberations_with_foen/temp/mean_image_Stracking.fits', ext=0)
+foc = fits.getdata('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/08_aberations_with_foen/AF_001.fits', ext=0)
 defdofc = fits.getdata('C:/Users/ADM/OneDrive - HESSO/Dominique/07_mesures/08_aberations_with_foen/temp/mean_image_Stracking_def.fits', ext=0)
 
 
 
 plt.figure()
-plt.imshow(foc**(1/1))
+plt.imshow(foc**(1/8))
 plt.title('Focused images Stracked')
 
 
