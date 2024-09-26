@@ -1,4 +1,4 @@
-# Known mistakes
+# Known errors
 
 1. The test bench of chapter 6 has its parameter compued with an erronated value. The exit pupil position relative to the image plane and its Ø should be used to compute the F/D parameter. The matlab script associated is yet to recieve the update.
 2. There is an error in the geometric solution on page 38. The matlab script associated is yet to recieve the update.
